@@ -39,6 +39,9 @@ export async function bootstrap(): Promise<BootstrapResult> {
   );
 
   const container = await createAppContainer({ config, logger });
+  logger.info("Running health check of services...");
+  await container.services.system.status();
+  logger.info("Health check passed.");
   const scheduler = new JobScheduler(logger, container.repositories.jobs);
   for (const job of buildScheduledJobs(container)) {
     scheduler.register(job);

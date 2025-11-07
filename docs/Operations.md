@@ -9,12 +9,12 @@
 - **Configuration**:
   - `.env` stores sensitive overrides (database paths, cron frequencies, model IDs).
   - `bunfig.toml` defines transpilation, module resolution, and runtime flags.
-  - `config/default.ts` (planned) merges env + defaults and validates via Zod.
+  - `src/config/index.ts` merges env + defaults and validates via Zod.
 
 ## 2. Process Management
 - **Local development**: `bun dev` runs with hot reload (watch mode).
 - **Production**: build with `bun build src/index.ts --outdir dist` and execute `bun run dist/server.js` under process manager (systemd, PM2, supervisor).
-- **Graceful shutdown**: SIGINT/SIGTERM trigger cleanup—persist queue state, flush SQLite, close Vectra collections, and remove PID file.
+- **Graceful shutdown**: SIGINT/SIGTERM trigger cleanup—stop cron scheduler, flush SQLite WAL, close Vectra collections.
 
 ## 3. Logging & Observability
 - **Pino** logging with structured JSON output; log level controlled by `LOG_LEVEL`.
@@ -25,10 +25,10 @@
 ## 4. Background Jobs
 | Job | Default Schedule | Description |
 |-----|------------------|-------------|
-| Consolidation | `0 */2 * * *` (every 2 hours) | Promotes STM → LTM, merges similar memories, refreshes embeddings. |
-| Cleanup | `0 3 * * *` (daily) | Removes expired STM, prunes orphaned references, vacuums SQLite/FTS. |
-| Backup | `0 1 * * *` (daily) | Snapshot SQLite, Vectra collections, and documents to `<data-root>/backups/{timestamp}`. |
-| Reindex | `0 4 * * 0` (weekly) | Rebuilds Vectra indices and FTS tables for long-term health. |
+| Consolidation | `0 * * * *` | Promotes STM → LTM, merges similar memories, refreshes embeddings (placeholder instrumentation). |
+| Cleanup | `30 2 * * 0` | Runs WAL checkpoint and VACUUM to maintain SQLite health. |
+| Backup | `0 3 * * *` | Snapshot SQLite, Vectra collections, and documents to `<data-root>/backups/{timestamp}`. |
+| Reindex | `0 4 * * *` | Refresh Vectra stats and future index maintenance. |
 | Metrics Rollup | `*/15 * * * *` | Aggregates search metrics into hourly/daily buckets. |
 
 Jobs registered via `node-cron`; custom schedules overridable through environment variables (e.g., `CRON_BACKUP`).

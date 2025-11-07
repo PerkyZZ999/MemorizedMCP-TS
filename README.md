@@ -33,7 +33,7 @@ MemorizedMCP-TS is the Bun + TypeScript rewrite of the Memorized MCP server. The
 - `bun run test:watch` — Vitest in watch mode.
 - `bun run generate-schemas` — generate JSON Schema artefacts from Zod definitions.
 - `bun run migrate` — migration runner for SQLite/Vectra.
-- `bun run bench` — performance benchmark harness scaffolding.
+- `bun run bench` — quick ingestion/search benchmark (see `src/scripts/benchmarks.ts`).
 - `bun run backup` — snapshot the current data root into `backups/`.
 - `bun run restore -- <dir>` — restore a snapshot created via `backup`.
 - `bun run export:memories -- <file>` — export memories as JSONL (defaults to stdout).
@@ -41,7 +41,7 @@ MemorizedMCP-TS is the Bun + TypeScript rewrite of the Memorized MCP server. The
 
 ## MCP Usage
 
-- Run the MCP server via `bun run dev` (or `bun run start` after building). The server listens over stdio by default.
+- Run the MCP server via `bun run dev` (or `bun run start` after building). The server listens over stdio by default, performs a health check, and starts cron jobs.
 - Single-tool mode exposes a `run_code` tool that executes TypeScript snippets with pre-bound clients: `services.memory`, `services.document`, `services.search`, etc. Console output and returned values are surfaced in the response.
 - Set `MCP_MULTI_TOOL=true` to register discrete tools (`memory.add`, `memory.search`, `document.store`, `document.retrieve`, `document.list`, `knowledge.list_entities`, `system.status`) alongside `run_code`.
 - JSON schemas for the public tool inputs/outputs can be regenerated with `bun run generate-schemas` (written to `generated/schemas/`).

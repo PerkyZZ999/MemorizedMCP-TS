@@ -17,6 +17,10 @@ export class TransformersEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embed(texts: string[]): Promise<number[][]> {
+    if (this.#modelId === "hash" || this.#modelId === "none" || this.#modelId === "local") {
+      return texts.map((text, index) => this.#hashEmbedding(text, index));
+    }
+
     const pipeline = await this.#getPipeline();
 
     if (pipeline) {
