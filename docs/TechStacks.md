@@ -1,0 +1,11 @@
+# TECH STACKS for MemorizedMCP-TS
+- MCP Framework: modelcontextprotocol/typescript-sdk — https://github.com/modelcontextprotocol/typescript-sdk
+- Storage: sqlite/sqlite — https://github.com/sqlite/sqlite
+- Vector Index: Stevenic/vectra — https://github.com/Stevenic/vectra
+- Embeddings: huggingface/transformers.js — https://github.com/huggingface/transformers.js
+- Document Parsing: unjs/unpdf — https://github.com/unjs/unpdf
+- Entity/KG Extraction: spencermountain/compromise — https://github.com/spencermountain/compromise
+- Search / FTS Layer: sqlite/sqlite (FTS5 in SQLite) — https://github.com/sqlite/sqlite
+- Job Scheduling / Bg Tasks: kelektiv/node-cron — https://github.com/kelektiv/node-cron
+- Schema & Validation: colinhacks/zod — https://github.com/colinhacks/zod
+- Observability: pinojs/pino — https://github.com/pinojs/pino
