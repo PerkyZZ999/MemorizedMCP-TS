@@ -5,6 +5,7 @@ node_modules
 out
 dist
 generated
+data
 *.tgz
 
 # code coverage

@@ -24,7 +24,7 @@ export async function bootstrap(): Promise<BootstrapResult> {
     mode,
   });
 
-  console.log(banner);
+  console.error(banner);
 
   logger.info(
     {

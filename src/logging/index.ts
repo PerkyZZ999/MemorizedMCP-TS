@@ -16,14 +16,17 @@ export function createLogger(
 ): AppLogger {
   const { level, ...rest } = options;
 
-  return pino({
-    level: level ?? config.logLevel,
-    base: {
-      service: "memorizedmcp-ts",
-      environment: config.env,
+  return pino(
+    {
+      level: level ?? config.logLevel,
+      base: {
+        service: "memorizedmcp-ts",
+        environment: config.env,
+      },
+      timestamp: pino.stdTimeFunctions.isoTime,
+      ...rest,
     },
-    timestamp: pino.stdTimeFunctions.isoTime,
-    ...rest,
-  });
+    pino.destination({ fd: process.stderr.fd }),
+  );
 }
 

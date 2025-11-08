@@ -7,22 +7,20 @@ import {
   DocumentIngestionRequestSchema,
   DocumentListRequestSchema,
   DocumentRetrieveRequestSchema,
+  DocumentIngestionResultSchema,
+  DocumentRecordSchema,
 } from "../schemas/document";
 import {
   MemoryAddInputSchema,
   MemorySearchRequestSchema,
   MemorySearchResultSchema,
+  MemoryRecordSchema,
 } from "../schemas/memory";
 import {
   KnowledgeListEntitiesRequestSchema,
   KnowledgeEntitySchema,
 } from "../schemas/knowledge";
 import type { ServiceRegistry } from "../services/types";
-
-const RunCodeInputSchema = {
-  code: z.string().min(1, "Provide TypeScript source to execute."),
-  timeoutMs: z.number().int().min(100).max(600_000).optional(),
-};
 
 export async function startMcpServer(container: AppContainer): Promise<void> {
   const { config, logger, services } = container;
@@ -60,7 +58,10 @@ function registerRunCodeTool(
       title: "Execute TypeScript in MemorizedMCP sandbox",
       description:
         "Runs a TypeScript snippet with access to typed service bindings. Return values are captured as structured results, and console output is streamed back.",
-      inputSchema: RunCodeInputSchema,
+      inputSchema: {
+        code: z.string().min(1, "Provide TypeScript source to execute."),
+        timeoutMs: z.number().int().min(100).max(600_000).optional(),
+      },
       outputSchema: {
         result: z.unknown().optional(),
         logs: z.array(z.string()),
@@ -106,6 +107,9 @@ function registerMultiTools(
       description:
         "Stores a memory within the requested layer, computes embeddings, and returns the stored record.",
       inputSchema: MemoryAddInputSchema.shape,
+      outputSchema: {
+        memory: MemoryRecordSchema,
+      },
     },
     async (args) => {
       const record = await services.memory.addMemory(args);
@@ -145,10 +149,19 @@ function registerMultiTools(
       description:
         "Stores document content, chunking, embeddings, and knowledge graph entities for future retrieval.",
       inputSchema: DocumentIngestionRequestSchema.shape,
+      outputSchema: {
+        document: DocumentRecordSchema,
+        chunkCount: z.number().int().min(0),
+        entities: z.array(z.string()).optional(),
+      },
     },
     async (args) => {
       const result = await services.document.ingest(args);
-      const structured = { document: result.document, chunkCount: result.chunkCount, entities: result.entities };
+      const structured = { 
+        document: result.document, 
+        chunkCount: result.chunkCount, 
+        entities: result.entities 
+      };
       return {
         content: [{ type: "text", text: formatStructured(structured) }],
         structuredContent: structured,
@@ -161,6 +174,9 @@ function registerMultiTools(
     {
       title: "Retrieve a document by ID",
       inputSchema: DocumentRetrieveRequestSchema.shape,
+      outputSchema: {
+        document: DocumentRecordSchema,
+      },
     },
     async ({ id }) => {
       const document = await services.document.getDocument(id);
@@ -180,8 +196,12 @@ function registerMultiTools(
     {
       title: "List recently ingested documents",
       inputSchema: DocumentListRequestSchema.shape,
+      outputSchema: {
+        documents: z.array(DocumentRecordSchema),
+      },
     },
-    async ({ limit, offset }) => {
+    async (args) => {
+      const { limit, offset } = args;
       const docs = await services.document.listDocuments(limit, offset);
       const structured = { documents: docs };
       return {
@@ -200,7 +220,8 @@ function registerMultiTools(
         entities: z.array(KnowledgeEntitySchema),
       },
     },
-    async ({ limit, offset }) => {
+    async (args) => {
+      const { limit, offset } = args;
       const entities = await services.knowledge.listEntities(limit, offset);
       const structured = { entities };
       return {
@@ -214,6 +235,13 @@ function registerMultiTools(
     "system.status",
     {
       title: "Report MemorizedMCP system status",
+      outputSchema: {
+        status: z.object({
+          vectraHealth: z.boolean(),
+          lastConsolidation: z.number().nullable(),
+          lastBackup: z.number().nullable(),
+        }),
+      },
     },
     async () => {
       try {

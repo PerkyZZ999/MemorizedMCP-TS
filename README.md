@@ -15,12 +15,22 @@ MemorizedMCP-TS is the Bun + TypeScript rewrite of the Memorized MCP server. The
    bun install
    ```
 2. **Bootstrap configuration**  
-   The server reads configuration from environment variables (Bun auto-loads `.env`). Copy `.env.example` when it becomes available or define values directly in your environment.
+   The server reads configuration from environment variables (Bun auto-loads `.env`). Copy `.env.example` and tweak values for your environment or define them directly in your shell.
 3. **Run the bootstrap entrypoint**
    ```sh
    bun run dev
    ```
    The stub entrypoint resolves configuration, initializes structured logging, and prints a readiness banner. Transport wiring and service orchestration land in later phases of the roadmap.
+
+## Quickstart
+
+```sh
+bun install
+cp .env.example .env
+bun run dev
+```
+
+Use `run_code` in single-tool mode or set `MCP_MULTI_TOOL=true` to expose discrete tools. Run `bun test` to execute the verification suite before making changes.
 
 ## Scripts
 
@@ -38,6 +48,21 @@ MemorizedMCP-TS is the Bun + TypeScript rewrite of the Memorized MCP server. The
 - `bun run restore -- <dir>` — restore a snapshot created via `backup`.
 - `bun run export:memories -- <file>` — export memories as JSONL (defaults to stdout).
 - `bun run import:memories -- <file>` — import memories from JSONL.
+
+## Building & Release
+
+1. `bun run build` to produce the `dist/` bundle (Bun-targeted).
+2. `bun run generate-schemas` to refresh JSON Schemas in `generated/schemas/`.
+3. `bun run bench` (optional) to capture ingestion/search benchmarks.
+4. Update `CHANGELOG.md` and tag (`git tag v1.0.0-beta`) once tests pass.
+5. Publish release artifacts (`dist/`, `.env.example`, `CHANGELOG.md`).
+
+## Security & Hardening Checklist
+
+- Run the integration/unit suite (`bun test`) before release.
+- Review cron job schedules and sandbox timeout (`SINGLE_TOOL_TIMEOUT_MS`) for production.
+- Restrict filesystem access to `DATA_ROOT`; ensure backups reside on secure media.
+- Set `TRANSFORMER_MODEL` to a verified model and pre-warm embeddings if offline deployments are required.
 
 ## MCP Usage
 

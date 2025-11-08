@@ -18,11 +18,26 @@ afterEach(() => {
 
 describe("loadConfig", () => {
   it("uses sensible defaults when no overrides are provided", () => {
-    const config = loadConfig({}, { ...DEFAULT_OPTIONS, envVars: { NODE_ENV: undefined } });
+    const config = loadConfig(
+      {},
+      {
+        ...DEFAULT_OPTIONS,
+        envVars: {
+          NODE_ENV: undefined,
+          DATA_ROOT: undefined,
+          SQLITE_URL: undefined,
+          TRANSFORMER_MODEL: undefined,
+          MCP_MULTI_TOOL: undefined,
+          SINGLE_TOOL_TIMEOUT_MS: undefined,
+        },
+      },
+    );
 
     expect(config.env).toBe("development");
     expect(config.logLevel).toBe("info");
-    expect(config.dataRoot.endsWith(path.join("data"))).toBe(true);
+    expect(path.normalize(config.dataRoot)).toBe(
+      path.normalize(path.join(DEFAULT_OPTIONS.cwd!, "data")),
+    );
     expect(config.sqlite.url.endsWith(path.join("data", "sqlite", "memorized.db"))).toBe(true);
     expect(config.mcp.multiTool).toBe(false);
     expect(config.mcp.singleToolTimeoutMs).toBe(120_000);
