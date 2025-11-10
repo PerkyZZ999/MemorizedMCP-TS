@@ -114,6 +114,26 @@ Switch between modes by replacing `--multi-tool` with `--single-tool`, or omit t
 
 ---
 
+## Embedding Model Choices
+
+The MCP server relies on a sentence embedding model for hybrid search. Transformers.js ships many compatible checkpoints [[Transformers.js docs](https://huggingface.co/docs/transformers.js/index)]. Pick the model that best matches your needs:
+
+| Model | License | Dim | Notes |
+| ----- | ------- | --- | ----- |
+| `Xenova/all-MiniLM-L6-v2` | Apache 2.0 (free) | 384 | Default in our examples. Fast, tiny (~80 MB), excellent for Bun/Node environments. |
+| `Xenova/all-mpnet-base-v2` | Apache 2.0 (free) | 768 | Higher-quality English embeddings; ~3× the size and slower inference. |
+| `Xenova/multilingual-MiniLM-L12-v2` | Apache 2.0 (free) | 384 | Balanced accuracy with multilingual coverage (50+ languages). |
+
+For fully-managed / higher-accuracy options (with usage-based pricing), you can swap the embedding provider to Hugging Face Inference Endpoints or third-party APIs (e.g. OpenAI’s `text-embedding-3-large`). See `src/services/embedding.ts` for the integration point.
+
+Update the environment variable accordingly:
+
+```bash
+TRANSFORMER_MODEL=Xenova/all-mpnet-base-v2
+```
+
+---
+
 ## Available Scripts
 
 | Script | Description |
