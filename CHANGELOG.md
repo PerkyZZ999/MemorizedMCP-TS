@@ -8,7 +8,7 @@
 - Extended document service to support update/delete, FTS-backed search, reference introspection, and analytics tooling.
 - Published MCP multi-tool suite covering the new memory, document, and knowledge graph operations.
 - Added release tooling (`bun run build`, declaration emission, schema generation) plus CLI shim for `bunx memorizedmcp-ts`.
-- Introduced CLI flags (`--multi-tool`, `--single-tool`, `--config`, `--env`) and bin entry for seamless `npx -y @perkyzz999/memorizedmcp-ts` usage in Cursor install links.
+- Introduced CLI flags (`--multi-tool`, `--single-tool`, `--config`, `--env`) and bin entry for seamless `npx -y memorizedmcp-ts` usage in Cursor install links.
 - Documented the complete tool surface and single vs multi-tool behaviour in `docs/MCP-Server-Guide.md` and README.
 
 ### Changed

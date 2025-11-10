@@ -70,13 +70,13 @@ You can flip modes on the published npm package using CLI flags:
 
 ```bash
 # Force multi-tool mode via the CLI
-npx -y @perkyzz999/memorizedmcp-ts --multi-tool
+npx -y memorizedmcp-ts --multi-tool
 
 # Force single-tool mode
-npx -y @perkyzz999/memorizedmcp-ts --single-tool
+npx -y memorizedmcp-ts --single-tool
 
 # Load a custom .env file and inject overrides
-npx -y @perkyzz999/memorizedmcp-ts --config ~/.memorized/.env.production --env LOG_LEVEL=debug
+npx -y memorizedmcp-ts --config ~/.memorized/.env.production --env LOG_LEVEL=debug
 ```
 
 ### When to Use Each Mode

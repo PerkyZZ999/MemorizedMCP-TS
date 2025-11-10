@@ -46,16 +46,20 @@ CLI flags:
 
 All options map to the same environment variables used in self-hosted mode, so you can switch between single-tool and multi-tool behaviour without editing source code.
 
+> **Tip:** If Bun isn’t on your PATH, set `BUN_BINARY=/custom/path/to/bun` before running `npx memorizedmcp-ts`.
+
 ---
 
 ## Quickstart
 
 ```sh
+# Requires Bun (>=1.3.0) available on your PATH
+
 # Launch the published MCP server (multi-tool mode)
-npx -y @perkyzz999/memorizedmcp-ts --multi-tool
+npx -y memorizedmcp-ts --multi-tool
 
 # or force single-tool sandbox
-npx -y @perkyzz999/memorizedmcp-ts --single-tool
+npx -y memorizedmcp-ts --single-tool
 ```
 
 For local development you can still run the source directly:
@@ -97,7 +101,7 @@ The published package is compatible with Cursor’s install link generator [[Cur
     "command": "npx",
     "args": [
       "-y",
-      "@perkyzz999/memorizedmcp-ts",
+      "memorizedmcp-ts",
       "--",
       "--multi-tool"
     ],
