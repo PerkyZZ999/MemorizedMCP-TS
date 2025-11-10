@@ -1,95 +1,181 @@
 # MemorizedMCP-TS
 
-MemorizedMCP-TS is the Bun + TypeScript rewrite of the Memorized MCP server. The project targets a single-tool MCP execution experience with a config-driven multi-tool fallback mode, hybrid memory infrastructure (SQLite + Vectra + knowledge graph), and robust operational tooling.
+**Important:** This MCP server has only been validated end-to-end with **Cursor 2.0**. Other IDEs or MCP hosts might require additional wiring or configuration changes. Contributions that broaden compatibility are very welcome!
 
-- [`docs/Requirements.md`](docs/Requirements.md) — goals, scope, and non-functional requirements.
-- [`docs/Architecture.md`](docs/Architecture.md) — topology, module breakdown, transport diagrams.
-- [`docs/Data-Model.md`](docs/Data-Model.md) — relational schema, vector storage, lifecycle workflows.
-- [`docs/API.md`](docs/API.md) — tool contracts, schema governance, configuration parameters.
-- [`docs/Operations.md`](docs/Operations.md) — deployment guidance, background jobs, roadmap milestones.
+MemorizedMCP-TS is a Bun + TypeScript implementation of the Memorized MCP server. It provides:
 
-## Getting Started
+- Hybrid memory infrastructure (SQLite + Vectra) with multi-layer support
+- Document intelligence with chunking, embeddings, FTS-backed search, and entity extraction
+- A knowledge graph service that links entities, relationships, and contextual metadata
+- A fully sandboxed `run_code` experience plus a rich multi-tool registry for discrete MCP calls
+- Operational tooling: migrations, scheduled jobs, backup/restore, schema generation, and analytics
 
-1. **Install dependencies**
-   ```sh
-   bun install
-   ```
-2. **Bootstrap configuration**  
-   The server reads configuration from environment variables (Bun auto-loads `.env`). Copy `.env.example` and tweak values for your environment or define them directly in your shell.
-3. **Run the bootstrap entrypoint**
-   ```sh
-   bun run dev
-   ```
-   The stub entrypoint resolves configuration, initializes structured logging, and prints a readiness banner. Transport wiring and service orchestration land in later phases of the roadmap.
+Key architectural docs:
+- [`docs/Architecture.md`](docs/Architecture.md) — overall topology and module layout
+- [`docs/Data-Model.md`](docs/Data-Model.md) — database schema, embeddings, and KG storage
+- [`docs/API.md`](docs/API.md) — tool definitions, schemas, and transport contracts
+- [`docs/MCP-Server-Guide.md`](docs/MCP-Server-Guide.md) — in-depth usage guide (single vs multi tool)
+
+---
+
+## Installation
+
+```sh
+bun install
+cp .env.example .env    # customise configuration if required
+```
+
+The server relies on Bun ≥ 1.3.0. Ensure the configured `TRANSFORMER_MODEL` is available locally or via the network, and create the `DATA_ROOT` directories if you plan to persist data.
+
+### From npm (after publishing)
+
+```sh
+npm install memorizedmcp-ts
+bunx memorizedmcp-ts --multi-tool   # launches the published stdio server
+```
+
+CLI flags:
+
+| Flag | Description |
+| ---- | ----------- |
+| `--config <path>` | Load an alternate `.env` file before bootstrapping |
+| `--multi-tool` | Force multi-tool registration (`MCP_MULTI_TOOL=true`) |
+| `--single-tool` | Force single-tool sandbox (`MCP_MULTI_TOOL=false`) |
+| `--env KEY=VALUE` | Inject arbitrary environment overrides (repeatable) |
+| `--help` | Print CLI usage |
+
+All options map to the same environment variables used in self-hosted mode, so you can switch between single-tool and multi-tool behaviour without editing source code.
+
+---
 
 ## Quickstart
 
 ```sh
-bun install
-cp .env.example .env
+# Start in watch mode
 bun run dev
+
+# Or build + run the bundled output
+bun run build
+bun run start
 ```
 
-Use `run_code` in single-tool mode or set `MCP_MULTI_TOOL=true` to expose discrete tools. Run `bun test` to execute the verification suite before making changes.
+Single-tool mode exposes a `run_code` tool with type-safe bindings:
 
-## Scripts
+```ts
+const memory = await services.memory.addMemory({
+  content: "User prefers dark mode",
+  layer: "semantic",
+  importance: 0.8,
+});
 
-- `bun run dev` — run the entrypoint with file watching.
-- `bun run build` — bundle the server to `dist/`.
-- `bun run start` — execute the bundled output (after build).
-- `bun run lint` — static analysis with Biome.
-- `bun run format` — auto-format the repository.
-- `bun run test` — execute Vitest test suites.
-- `bun run test:watch` — Vitest in watch mode.
-- `bun run generate-schemas` — generate JSON Schema artefacts from Zod definitions.
-- `bun run migrate` — migration runner for SQLite/Vectra.
-- `bun run bench` — quick ingestion/search benchmark (see `src/scripts/benchmarks.ts`).
-- `bun run backup` — snapshot the current data root into `backups/`.
-- `bun run restore -- <dir>` — restore a snapshot created via `backup`.
-- `bun run export:memories -- <file>` — export memories as JSONL (defaults to stdout).
-- `bun run import:memories -- <file>` — import memories from JSONL.
+const context = await services.knowledge.getEntityContext({
+  entityId: "entity-id",
+});
+```
 
-## Building & Release
+Toggle multi-tool mode by setting `MCP_MULTI_TOOL=true` (in `.env` or the process environment). The server will register every tool described in [`docs/MCP-Server-Guide.md`](docs/MCP-Server-Guide.md).
 
-1. `bun run build` to produce the `dist/` bundle (Bun-targeted).
-2. `bun run generate-schemas` to refresh JSON Schemas in `generated/schemas/`.
-3. `bun run bench` (optional) to capture ingestion/search benchmarks.
-4. Update `CHANGELOG.md` and tag (`git tag v1.0.0-beta`) once tests pass.
-5. Publish release artifacts (`dist/`, `.env.example`, `CHANGELOG.md`).
+---
+
+## Cursor MCP Configuration
+
+The published package is compatible with Cursor’s install link generator [[Cursor MCP install links](https://cursor.com/docs/context/mcp/install-links#generate-install-link)]:
+
+```jsonc
+{
+  "memorizedmcp-ts": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@perkyzz999/memorizedmcp-ts",
+      "--",
+      "--multi-tool"
+    ],
+    "env": {
+      "LOG_LEVEL": "info",
+      "TRANSFORMER_MODEL": "Xenova/all-MiniLM-L6-v2",
+      "DATA_ROOT": "~/.memorizedmcp"
+    }
+  }
+}
+```
+
+Switch between modes by replacing `--multi-tool` with `--single-tool`, or omit the flag to defer to `.env` defaults. Additional overrides can be provided via repeated `--env KEY=VALUE` arguments.
+
+---
+
+## Available Scripts
+
+| Script | Description |
+| ------ | ----------- |
+| `bun run dev` | Execute the entrypoint with file watching |
+| `bun run start` | Run the compiled bundle in `dist/` |
+| `bun run build` | Bundle the server for distribution |
+| `bun run build:types` | Emit declaration files into `dist/types/` |
+| `bun run lint` | Static analysis via Biome |
+| `bun run format` | Auto-format the codebase |
+| `bun run test` | Execute Vitest suites |
+| `bun run migrate` | Apply database migrations |
+| `bun run generate-schemas` | Produce JSON Schemas from Zod definitions |
+| `bun run backup` / `bun run restore -- <dir>` | Data snapshot + restore helpers |
+| `bun run export:memories` / `import:memories` | JSONL import/export utilities |
+| `npm run prepare-release` | Lint, test, build, emit declarations, regenerate schemas |
+
+---
+
+## Configuration
+
+The server reads configuration from `.env` (via `dotenv`) plus runtime overrides. Important keys:
+
+| Variable | Description | Default |
+| -------- | ----------- | ------- |
+| `LOG_LEVEL` | Pino log level | `info` |
+| `DATA_ROOT` | Root for SQLite, backups, vectra indices | `./data` |
+| `SQLITE_URL` | Path to SQLite database | `./data/sqlite/memorized.db` |
+| `TRANSFORMER_MODEL` | Transformers.js model ID | `hash` (replace with a real model) |
+| `MCP_MULTI_TOOL` | Enable multi-tool registry | `false` |
+| `SINGLE_TOOL_TIMEOUT_MS` | Sandbox timeout for `run_code` | `120000` |
+| `CRON_*` | Cron expressions for scheduled jobs | see `.env.example` |
+
+Refer to [`docs/Operations.md`](docs/Operations.md) for deployment and scheduling guidance.
+
+---
+
+## Publishing Workflow
+
+Follow the steps in [`docs/MCP-Server-Guide.md`](docs/MCP-Server-Guide.md) and [`CHANGELOG.md`](CHANGELOG.md), then run:
+
+```sh
+npm run prepare-release
+npm publish --access public --tag latest   # or beta/rc as appropriate
+```
+
+The `prepare-release` script executes linting, tests, bundling, type emission, and schema generation so the tarball includes everything required to run the MCP server.
+
+---
 
 ## Security & Hardening Checklist
 
-- Run the integration/unit suite (`bun test`) before release.
-- Review cron job schedules and sandbox timeout (`SINGLE_TOOL_TIMEOUT_MS`) for production.
-- Restrict filesystem access to `DATA_ROOT`; ensure backups reside on secure media.
-- Set `TRANSFORMER_MODEL` to a verified model and pre-warm embeddings if offline deployments are required.
+- `bun run test` before every release
+- Review cron schedules (`CRON_*`) and sandbox timeout (`SINGLE_TOOL_TIMEOUT_MS`)
+- Store backups in secure storage and restrict filesystem permissions to `DATA_ROOT`
+- Use a vetted `TRANSFORMER_MODEL`; pre-warm embeddings if offline
 
-## MCP Usage
+---
 
-- Run the MCP server via `bun run dev` (or `bun run start` after building). The server listens over stdio by default, performs a health check, and starts cron jobs.
-- Single-tool mode exposes a `run_code` tool that executes TypeScript snippets with pre-bound clients: `services.memory`, `services.document`, `services.search`, etc. Console output and returned values are surfaced in the response.
-- Set `MCP_MULTI_TOOL=true` to register discrete tools (`memory.add`, `memory.search`, `document.store`, `document.retrieve`, `document.list`, `knowledge.list_entities`, `system.status`) alongside `run_code`.
-- JSON schemas for the public tool inputs/outputs can be regenerated with `bun run generate-schemas` (written to `generated/schemas/`).
+## Compatibility Notes
 
-## Configuration Overview
+- Fully tested with **Cursor 2.0** (MCP host + IDE)
+- Other MCP clients may require modified transport wiring or additional glue code (`startMcpServer`, tool registration)
+- Report compatibility issues through GitHub issues so we can broaden out-of-the-box support
 
-Configuration merges defaults, `.env`, and runtime overrides via the `loadConfig` helper in `src/config/`. Key environment variables:
+---
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Runtime environment label | `development` |
-| `LOG_LEVEL` | Pino log level | `info` |
-| `DATA_ROOT` | Root directory for persisted artefacts | `<project>/data` |
-| `SQLITE_URL` | SQLite database path | `<DATA_ROOT>/sqlite/memorized.db` |
-| `MCP_MULTI_TOOL` | Enable multi-tool registry mode | `false` |
-| `SINGLE_TOOL_TIMEOUT_MS` | Sandbox default timeout | `120000` |
-| `TRANSFORMER_MODEL` | Transformers.js model ID | `Xenova/all-MiniLM-L6-v2` |
-| `VECTRA_COLLECTION_MEM` | Vectra collection for memories | `memories` |
-| `VECTRA_COLLECTION_DOC` | Vectra collection for document chunks | `doc_chunks` |
-| `CRON_CONSOLIDATE` | Consolidation job schedule | `0 * * * *` |
-| `CRON_BACKUP` | Backup job schedule | `0 3 * * *` |
-| `CRON_CLEANUP` | Cleanup/VACUUM job schedule | `30 2 * * 0` |
-| `CRON_REINDEX` | Reindex/diagnostic job schedule | `0 4 * * *` |
-| `CRON_METRICS` | Metrics rollup job schedule | `*/15 * * * *` |
+## Contributing
 
-Subsequent phases of the roadmap add service wiring, migrations, repositories, MCP tooling, and operational scripts atop this foundation.
+1. Fork the repository and create a feature branch
+2. Run `bun run lint` and `bun run test` before committing
+3. Update documentation (README, MCP guide, CHANGELOG) as needed
+4. Submit a PR describing how you tested the change (include IDE / MCP host details)
+
+Thanks for using MemorizedMCP-TS! Complimentary feedback and feature requests are encouraged via GitHub issues or pull requests.

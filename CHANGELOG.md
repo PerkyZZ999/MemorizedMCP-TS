@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0] - 2025-11-10
+
+### Added
+- Expanded knowledge graph service with entity CRUD, relation management, tagging, graph traversal, and contextual extraction utilities.
+- Enriched memory service with retrieval helpers (`getMemory`, entity/document filters) and MCP multi-tool coverage.
+- Extended document service to support update/delete, FTS-backed search, reference introspection, and analytics tooling.
+- Published MCP multi-tool suite covering the new memory, document, and knowledge graph operations.
+- Added release tooling (`bun run build`, declaration emission, schema generation) plus CLI shim for `bunx memorizedmcp-ts`.
+- Introduced CLI flags (`--multi-tool`, `--single-tool`, `--config`, `--env`) and bin entry for seamless `npx -y @perkyzz999/memorizedmcp-ts` usage in Cursor install links.
+- Documented the complete tool surface and single vs multi-tool behaviour in `docs/MCP-Server-Guide.md` and README.
+
+### Changed
+- `package.json` now exposes dual ESM entrypoints, type declarations, and a `prepare-release` workflow suited for npm publishing.
+- README now highlights Cursor 2.0 compatibility, installation steps, and publishing guidance.
+
+### Notes
+- This version has been validated with Cursor 2.0; other MCP hosts may need additional testing or configuration.
+
 ## v1.0.0-beta (2025-11-07)
 
 - Bootstrapped Bun + TypeScript server with configuration, logging, and SQLite/Vectra data layer.

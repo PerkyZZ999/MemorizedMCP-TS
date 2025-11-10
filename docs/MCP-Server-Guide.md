@@ -1,5 +1,6 @@
 # MemorizedMCP-TS Server Guide
-This guide provides an overview of the MemorizedMCP-TS server and its capabilities.
+This guide provides an overview of the MemorizedMCP-TS server and its capabilities.  
+> **Compatibility note:** The server has been validated with Cursor 2.0. Other MCP hosts may require additional setup or testing.
 ---
 
 ## Overview
@@ -63,6 +64,19 @@ MCP_MULTI_TOOL=false
 
 # Multi-tool mode
 MCP_MULTI_TOOL=true
+```
+
+You can flip modes on the published npm package using CLI flags:
+
+```bash
+# Force multi-tool mode via the CLI
+npx -y @perkyzz999/memorizedmcp-ts --multi-tool
+
+# Force single-tool mode
+npx -y @perkyzz999/memorizedmcp-ts --single-tool
+
+# Load a custom .env file and inject overrides
+npx -y @perkyzz999/memorizedmcp-ts --config ~/.memorized/.env.production --env LOG_LEVEL=debug
 ```
 
 ### When to Use Each Mode

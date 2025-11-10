@@ -1,6 +1,6 @@
 import process from "node:process";
 import path from "node:path";
-import { loadConfig } from "./config";
+import { loadConfig, resetConfigCache } from "./config";
 import { createLogger } from "./logging";
 import { createAppContainer } from "./container";
 import { startMcpServer } from "./server/mcp";
@@ -12,11 +12,19 @@ export interface BootstrapResult {
   readonly mode: "single-tool" | "multi-tool";
 }
 
-export async function bootstrap(): Promise<BootstrapResult> {
-  const config = loadConfig();
+export interface BootstrapOptions {
+  readonly envFile?: string | false;
+  readonly envVars?: Record<string, string | undefined>;
+}
+
+export async function bootstrap(
+  options: BootstrapOptions = {},
+): Promise<BootstrapResult> {
+  const { envFile, envVars } = options;
+  const config = loadConfig({}, { envFile, envVars });
   const logger = createLogger(config);
   const mode = config.mcp.multiTool ? "multi-tool" : "single-tool";
-  const version = process.env.npm_package_version ?? "0.1.0";
+  const version = process.env.npm_package_version ?? "1.1.0";
 
   const banner = renderBanner({
     appName: "MemorizedMCP-TS",
@@ -75,7 +83,40 @@ export async function bootstrap(): Promise<BootstrapResult> {
 }
 
 if (import.meta.main) {
-  bootstrap().catch((error) => {
+  let cli: CliParseResult;
+  try {
+    cli = parseCliArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error((error as Error).message);
+    printHelp();
+    process.exit(1);
+  }
+
+  if (cli.showHelp) {
+    printHelp();
+    process.exit(0);
+  }
+
+  if (cli.multiTool === true) {
+    cli.envVars.MCP_MULTI_TOOL = "true";
+  } else if (cli.multiTool === false) {
+    cli.envVars.MCP_MULTI_TOOL = "false";
+  }
+
+  for (const [key, value] of Object.entries(cli.envVars)) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  resetConfigCache();
+
+  bootstrap({
+    envFile: cli.envFile,
+    envVars: cli.envVars,
+  }).catch((error) => {
     console.error("Fatal bootstrap error:", error);
     process.exit(1);
   });
@@ -97,4 +138,83 @@ function renderBanner({ appName, version, mode }: BannerOptions): string {
   ];
 
   return `\n${lines.join("\n")}\n`;
+}
+
+interface CliParseResult {
+  envFile?: string | false;
+  envVars: Record<string, string | undefined>;
+  multiTool?: boolean;
+  showHelp: boolean;
+}
+
+function parseCliArgs(argv: string[]): CliParseResult {
+  const result: CliParseResult = {
+    envVars: {},
+    showHelp: false,
+  };
+
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]!;
+    switch (arg) {
+      case "--":
+        return result;
+      case "-h":
+      case "--help":
+        result.showHelp = true;
+        return result;
+      case "-c":
+      case "--config": {
+        const value = argv[i + 1];
+        if (!value) {
+          throw new Error("Missing value for --config");
+        }
+        result.envFile =
+          value.toLowerCase() === "false"
+            ? false
+            : path.resolve(process.cwd(), value);
+        i += 1;
+        break;
+      }
+      case "--multi-tool":
+        result.multiTool = true;
+        break;
+      case "--single-tool":
+        result.multiTool = false;
+        break;
+      case "-e":
+      case "--env": {
+        const value = argv[i + 1];
+        if (!value || !value.includes("=")) {
+          throw new Error("Expected KEY=VALUE after --env");
+        }
+        const [key, ...rest] = value.split("=");
+        result.envVars[key] = rest.join("=");
+        i += 1;
+        break;
+      }
+      default:
+        throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+
+  return result;
+}
+
+function printHelp(): void {
+  const lines = [
+    "Usage: memorizedmcp-ts [options]",
+    "",
+    "Options:",
+    "  -c, --config <path>      Load environment variables from the specified .env file",
+    "      --multi-tool         Force multi-tool mode (sets MCP_MULTI_TOOL=true)",
+    "      --single-tool        Force single-tool mode (sets MCP_MULTI_TOOL=false)",
+    "  -e, --env KEY=VALUE      Inject additional environment variables (repeatable)",
+    "  -h, --help               Show this help message",
+    "",
+    "Examples:",
+    "  memorizedmcp-ts --multi-tool",
+    "  memorizedmcp-ts --config ./prod.env --env LOG_LEVEL=debug",
+  ];
+
+  console.log(lines.join("\n"));
 }
