@@ -51,6 +51,16 @@ All options map to the same environment variables used in self-hosted mode, so y
 ## Quickstart
 
 ```sh
+# Launch the published MCP server (multi-tool mode)
+npx -y @perkyzz999/memorizedmcp-ts --multi-tool
+
+# or force single-tool sandbox
+npx -y @perkyzz999/memorizedmcp-ts --single-tool
+```
+
+For local development you can still run the source directly:
+
+```sh
 # Start in watch mode
 bun run dev
 
