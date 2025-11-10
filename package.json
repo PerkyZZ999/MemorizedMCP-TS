@@ -23,6 +23,7 @@
     "bin/",
     "dist/",
     "src/",
+    "sql/",
     "generated/schemas/",
     "README.md",
     "CHANGELOG.md",

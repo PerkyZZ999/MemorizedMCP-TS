@@ -103,12 +103,14 @@ export function loadConfig(
     "development";
 
   const dataRoot =
-    overrides.dataRoot ?? mergedEnv.DATA_ROOT ?? path.resolve(baseDir, "data");
+    resolvePath(overrides.dataRoot ?? mergedEnv.DATA_ROOT, baseDir) ??
+    path.resolve(baseDir, "data");
 
   const sqliteUrl =
-    overrides.sqlite?.url ??
-    mergedEnv.SQLITE_URL ??
-    path.join(dataRoot, "sqlite", "memorized.db");
+    resolvePath(
+      overrides.sqlite?.url ?? mergedEnv.SQLITE_URL,
+      dataRoot,
+    ) ?? path.join(dataRoot, "sqlite", "memorized.db");
 
   const raw: ConfigInput = {
     env,
@@ -217,5 +219,30 @@ function coerceInteger(
   }
 
   throw new Error("Unable to coerce integer value from input");
+}
+
+function resolvePath(
+  input: string | undefined,
+  baseDir: string,
+): string | undefined {
+  if (!input?.trim()) {
+    return undefined;
+  }
+
+  let candidate = input.trim();
+  if (candidate.startsWith("~")) {
+    const home =
+      process.env.USERPROFILE ??
+      process.env.HOME ??
+      process.env.HOMEPATH ??
+      baseDir;
+    candidate = path.join(home, candidate.slice(1));
+  }
+
+  if (path.isAbsolute(candidate)) {
+    return candidate;
+  }
+
+  return path.resolve(baseDir, candidate);
 }
 

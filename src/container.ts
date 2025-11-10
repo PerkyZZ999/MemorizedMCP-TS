@@ -1,4 +1,6 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadConfig, type Config } from "./config";
 import { createLogger, type AppLogger } from "./logging";
 import { applyMigrations } from "./database/migrations";
@@ -51,6 +53,9 @@ export interface CreateContainerOptions {
   logger?: AppLogger;
 }
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export async function createAppContainer(
   options: CreateContainerOptions = {},
 ): Promise<AppContainer> {
@@ -61,7 +66,18 @@ export async function createAppContainer(
     filepath: config.sqlite.url,
   });
 
-  const migrationsDir = path.resolve(process.cwd(), "sql", "migrations");
+  const candidateMigrationRoots = [
+    path.resolve(__dirname, "../sql/migrations"),
+    path.resolve(process.cwd(), "sql/migrations"),
+  ];
+  const migrationsDir = candidateMigrationRoots.find((dir) => existsSync(dir));
+  if (!migrationsDir) {
+    throw new Error(
+      `Could not locate SQL migrations. Checked:\n${candidateMigrationRoots
+        .map((dir) => `  - ${dir}`)
+        .join("\n")}`,
+    );
+  }
   await applyMigrations(sqlite, migrationsDir);
 
   const vectra = new VectraAdapter({
