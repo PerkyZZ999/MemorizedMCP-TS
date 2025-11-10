@@ -4,7 +4,7 @@ import type {
   MemorySearchRequest,
   MemorySearchResult,
 } from "../schemas/memory";
-import type { KnowledgeEntityDTO, ExtractedEntity } from "../schemas/knowledge";
+import type { KnowledgeEntityDTO, KnowledgeEntityDetailDTO, KnowledgeEdgeDTO, KnowledgeGraphSnapshotDTO, KnowledgeEntityContextDTO, ExtractedEntity, KnowledgeGetEntityRequest, KnowledgeCreateEntityRequest, KnowledgeUpdateEntityRequest, KnowledgeDeleteEntityRequest, KnowledgeCreateRelationRequest, KnowledgeGetRelationsRequest, KnowledgeDeleteRelationRequest, KnowledgeSearchRelationsRequest, KnowledgeSearchEntitiesRequest, KnowledgeGetEntitiesByTypeRequest, KnowledgeGetEntitiesByTagRequest, KnowledgeTagEntityRequest, KnowledgeRemoveTagRequest, KnowledgeGetTagsRequest, KnowledgeReadGraphRequest, KnowledgeGetRelatedEntitiesRequest, KnowledgeFindPathRequest, KnowledgeGetEntityContextRequest, KnowledgeGetEntitiesInDocumentRequest, KnowledgeGetEntitiesInMemoryRequest } from "../schemas/knowledge";
 import type { HybridSearchResult } from "../schemas/search";
 import type { MemoryMetricDTO } from "../schemas/analytics";
 
@@ -56,6 +56,11 @@ export interface DocumentService {
 
   getDocument(id: string): Promise<DocumentIngestionResult["document"] | undefined>;
   listDocuments(limit?: number, offset?: number): Promise<DocumentIngestionResult["document"][]>;
+  updateDocument(input: { id: string; metadata?: Record<string, unknown>; title?: string }): Promise<DocumentIngestionResult["document"]>;
+  deleteDocument(input: { id: string }): Promise<void>;
+  searchDocuments(input: { query: string; limit?: number; offset?: number }): Promise<DocumentIngestionResult["document"][]>;
+  getDocumentReferences(input: { docId: string }): Promise<any[]>;
+  analyzeDocument(input: { docId: string }): Promise<any>;
 }
 
 export interface MemoryService {
@@ -73,11 +78,34 @@ export interface MemoryService {
   updateMemory(id: string, patch: Partial<MemoryRecordDTO>): Promise<MemoryRecordDTO>;
   deleteMemory(id: string): Promise<void>;
   searchMemories(request: MemorySearchRequest): Promise<MemorySearchResult[]>;
+  getMemory(input: { id: string }): Promise<MemoryRecordDTO | undefined>;
+  getMemoriesByEntity(input: { entityId: string; limit?: number; offset?: number }): Promise<MemoryRecordDTO[]>;
+  getMemoriesByDocument(input: { docId: string; limit?: number; offset?: number }): Promise<MemoryRecordDTO[]>;
 }
 
 export interface KnowledgeGraphService {
   ensureEntities(entities: ExtractedEntity[], context: { docId?: string }): Promise<KnowledgeEntityDTO[]>;
   listEntities(limit?: number, offset?: number): Promise<KnowledgeEntityDTO[]>;
+  getEntity(request: KnowledgeGetEntityRequest): Promise<KnowledgeEntityDetailDTO | undefined>;
+  createEntity(input: KnowledgeCreateEntityRequest): Promise<KnowledgeEntityDTO>;
+  updateEntity(input: KnowledgeUpdateEntityRequest): Promise<KnowledgeEntityDTO>;
+  deleteEntity(input: KnowledgeDeleteEntityRequest): Promise<void>;
+  createRelation(input: KnowledgeCreateRelationRequest): Promise<KnowledgeEdgeDTO>;
+  getEntityRelations(input: KnowledgeGetRelationsRequest): Promise<KnowledgeEdgeDTO[]>;
+  deleteRelation(input: KnowledgeDeleteRelationRequest): Promise<void>;
+  searchRelations(input: KnowledgeSearchRelationsRequest): Promise<KnowledgeEdgeDTO[]>;
+  searchEntities(input: KnowledgeSearchEntitiesRequest): Promise<KnowledgeEntityDTO[]>;
+  getEntitiesByType(input: KnowledgeGetEntitiesByTypeRequest): Promise<KnowledgeEntityDTO[]>;
+  getEntitiesByTag(input: KnowledgeGetEntitiesByTagRequest): Promise<KnowledgeEntityDTO[]>;
+  tagEntity(input: KnowledgeTagEntityRequest): Promise<KnowledgeEntityDTO>;
+  removeTag(input: KnowledgeRemoveTagRequest): Promise<KnowledgeEntityDTO>;
+  getTags(input: KnowledgeGetTagsRequest): Promise<string[]>;
+  readGraph(input: KnowledgeReadGraphRequest): Promise<KnowledgeGraphSnapshotDTO>;
+  getRelatedEntities(input: KnowledgeGetRelatedEntitiesRequest): Promise<KnowledgeEntityDTO[]>;
+  findPath(input: KnowledgeFindPathRequest): Promise<KnowledgeEdgeDTO[]>;
+  getEntityContext(input: KnowledgeGetEntityContextRequest): Promise<KnowledgeEntityContextDTO>;
+  getEntitiesInDocument(input: KnowledgeGetEntitiesInDocumentRequest): Promise<KnowledgeEntityDTO[]>;
+  getEntitiesInMemory(input: KnowledgeGetEntitiesInMemoryRequest): Promise<KnowledgeEntityDTO[]>;
 }
 
 export interface SearchService {

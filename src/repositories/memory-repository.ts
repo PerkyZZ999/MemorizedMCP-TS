@@ -234,6 +234,29 @@ export class MemoryRepository extends BaseRepository {
     return rows.map((row) => this.#mapRow(row));
   }
 
+  searchByEntityName(entityName: string, limit = 100): MemoryRecord[] {
+    // Use FTS5 to search for entity name in memory content
+    const rows = this.db.all<{ memory_id: string }>(
+      `SELECT memory_id FROM fts_memories
+       WHERE fts_memories MATCH ?
+       LIMIT ?;`,
+      [entityName, limit],
+    );
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const memoryIds = rows.map((row) => row.memory_id);
+    const placeholders = memoryIds.map(() => "?").join(",");
+    const memoryRows = this.db.all<MemoryRow>(
+      `SELECT * FROM memories WHERE id IN (${placeholders});`,
+      memoryIds,
+    );
+
+    return memoryRows.map((row) => this.#mapRow(row));
+  }
+
   #mapRow(row: MemoryRow): MemoryRecord {
     return {
       id: row.id,

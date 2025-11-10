@@ -93,6 +93,41 @@ export class KnowledgeGraphRepository extends BaseRepository {
     );
   }
 
+  updateEntity(id: string, updates: {
+    name?: string;
+    type?: string;
+    tags?: string[];
+  }): KnowledgeEntityRecord {
+    const fields: string[] = [];
+    const params: unknown[] = [];
+
+    if (updates.name !== undefined) {
+      fields.push("name = ?");
+      params.push(updates.name);
+    }
+    if (updates.type !== undefined) {
+      fields.push("type = ?");
+      params.push(updates.type);
+    }
+    if (updates.tags !== undefined) {
+      fields.push("tags = ?");
+      params.push(JSON.stringify(updates.tags));
+    }
+
+    if (fields.length > 0) {
+      params.push(id);
+      this.db.run(
+        `UPDATE entities SET ${fields.join(", ")} WHERE id = ?;`,
+        params,
+      );
+    }
+
+    return this.assertFound(
+      this.findById(id),
+      `Entity ${id} not found after update`,
+    );
+  }
+
   deleteEntity(id: string): void {
     this.db.run("DELETE FROM entities WHERE id = ?;", [id]);
   }
@@ -121,6 +156,65 @@ export class KnowledgeGraphRepository extends BaseRepository {
       [limit, offset],
     );
     return rows.map((row) => this.#mapEntity(row));
+  }
+
+  searchEntitiesByName(name: string, limit = 100, offset = 0): KnowledgeEntityRecord[] {
+    // Use FTS5 for name search
+    const rows = this.db.all<{ entity_id: string }>(
+      `SELECT entity_id FROM fts_entities
+       WHERE fts_entities MATCH ?
+       LIMIT ? OFFSET ?;`,
+      [name, limit, offset],
+    );
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const entityIds = rows.map((row) => row.entity_id);
+    const placeholders = entityIds.map(() => "?").join(",");
+    const entityRows = this.db.all<EntityRow>(
+      `SELECT * FROM entities WHERE id IN (${placeholders});`,
+      entityIds,
+    );
+
+    return entityRows.map((row) => this.#mapEntity(row));
+  }
+
+  findEntitiesByType(type: string, limit = 100, offset = 0): KnowledgeEntityRecord[] {
+    const rows = this.db.all<EntityRow>(
+      `SELECT * FROM entities
+       WHERE type = ?
+       ORDER BY last_seen DESC
+       LIMIT ? OFFSET ?;`,
+      [type, limit, offset],
+    );
+    return rows.map((row) => this.#mapEntity(row));
+  }
+
+  findEntitiesByTag(tag: string, limit = 100, offset = 0): KnowledgeEntityRecord[] {
+    // Search for entities that have the tag in their tags JSON array
+    // Using json_each to properly search JSON arrays
+    const rows = this.db.all<EntityRow>(
+      `SELECT DISTINCT e.* FROM entities e
+       JOIN json_each(e.tags) AS j
+       WHERE j.value = ?
+       ORDER BY e.last_seen DESC
+       LIMIT ? OFFSET ?;`,
+      [tag, limit, offset],
+    );
+    return rows.map((row) => this.#mapEntity(row));
+  }
+
+  getAllTags(): string[] {
+    // Get all unique tags from entities
+    const rows = this.db.all<{ tag: string }>(
+      `SELECT DISTINCT j.value AS tag
+       FROM entities e
+       JOIN json_each(e.tags) AS j
+       ORDER BY j.value ASC;`,
+    );
+    return rows.map((row) => row.tag);
   }
 
   upsertEdge(input: NewKnowledgeEdgeRecord): KnowledgeEdgeRecord {
@@ -174,6 +268,33 @@ export class KnowledgeGraphRepository extends BaseRepository {
        WHERE src = ? OR dst = ?
        ORDER BY created_at DESC;`,
       [entityId, entityId],
+    );
+    return rows.map((row) => this.#mapEdge(row));
+  }
+
+  getEdgesByEntityAndType(entityId: string, relationType?: string): KnowledgeEdgeRecord[] {
+    let query = `SELECT * FROM kg_edges
+                 WHERE (src = ? OR dst = ?)`;
+    const params: unknown[] = [entityId, entityId];
+
+    if (relationType) {
+      query += ` AND relation = ?`;
+      params.push(relationType);
+    }
+
+    query += ` ORDER BY created_at DESC;`;
+
+    const rows = this.db.all<EdgeRow>(query, params);
+    return rows.map((row) => this.#mapEdge(row));
+  }
+
+  searchEdgesByRelation(relationType: string, limit = 100, offset = 0): KnowledgeEdgeRecord[] {
+    const rows = this.db.all<EdgeRow>(
+      `SELECT * FROM kg_edges
+       WHERE relation = ?
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?;`,
+      [relationType, limit, offset],
     );
     return rows.map((row) => this.#mapEdge(row));
   }

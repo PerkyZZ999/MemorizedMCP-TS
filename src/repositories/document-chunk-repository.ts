@@ -134,6 +134,29 @@ export class DocumentChunkRepository extends BaseRepository {
     return rows.map((row) => this.#map(row));
   }
 
+  searchByEntityName(entityName: string, limit = 100): DocumentChunkRecord[] {
+    // Use FTS5 to search for entity name in chunk content
+    const rows = this.db.all<{ chunk_id: string }>(
+      `SELECT chunk_id FROM fts_doc_chunks
+       WHERE fts_doc_chunks MATCH ?
+       LIMIT ?;`,
+      [entityName, limit],
+    );
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const chunkIds = rows.map((row) => row.chunk_id);
+    const placeholders = chunkIds.map(() => "?").join(",");
+    const chunkRows = this.db.all<DocumentChunkRow>(
+      `SELECT * FROM doc_chunks WHERE id IN (${placeholders});`,
+      chunkIds,
+    );
+
+    return chunkRows.map((row) => this.#map(row));
+  }
+
   #map(row: DocumentChunkRow): DocumentChunkRecord {
     return {
       id: row.id,

@@ -97,6 +97,7 @@ export async function createAppContainer(
     embeddings,
     textSplitter,
     entityExtractor,
+    memoryRepository,
   });
 
   const memoryService = new DefaultMemoryService({
@@ -104,10 +105,15 @@ export async function createAppContainer(
     vectra,
     embeddings,
     searchService,
+    knowledgeRepository,
   });
 
   const knowledgeService = new DefaultKnowledgeGraphService({
     repository: knowledgeRepository,
+    documentRepository,
+    memoryRepository,
+    documentChunkRepository,
+    entityExtractor,
   });
 
   const analyticsService = new DefaultAnalyticsService({

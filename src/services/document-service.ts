@@ -10,10 +10,22 @@ import {
   DocumentIngestionRequestSchema,
   DocumentIngestionResultSchema,
   DocumentRecordSchema,
+  DocumentUpdateRequestSchema,
+  DocumentDeleteRequestSchema,
+  DocumentSearchRequestSchema,
+  DocumentGetReferencesRequestSchema,
+  DocumentAnalyzeRequestSchema,
+  DocumentAnalysisSchema,
   type DocumentIngestionRequest,
   type DocumentIngestionResult,
   type DocumentRecordDTO,
   type DocumentChunkDTO,
+  type DocumentUpdateRequest,
+  type DocumentDeleteRequest,
+  type DocumentSearchRequest,
+  type DocumentGetReferencesRequest,
+  type DocumentAnalyzeRequest,
+  type DocumentAnalysisDTO,
 } from "../schemas/document";
 import { ExtractedEntitySchema } from "../schemas/knowledge";
 import type {
@@ -34,6 +46,7 @@ export interface DocumentServiceDependencies {
   textSplitter: TextSplitter;
   summaryGenerator?: SummaryGenerator;
   entityExtractor?: EntityExtractor;
+  memoryRepository?: any; // MemoryRepository - avoid circular dependency
 }
 
 export class DefaultDocumentService implements DocumentService {
@@ -45,6 +58,7 @@ export class DefaultDocumentService implements DocumentService {
   #textSplitter: TextSplitter;
   #summaryGenerator?: SummaryGenerator;
   #entityExtractor?: EntityExtractor;
+  #memoryRepository?: any;
 
   constructor(deps: DocumentServiceDependencies) {
     this.#documentRepository = deps.documentRepository;
@@ -55,6 +69,7 @@ export class DefaultDocumentService implements DocumentService {
     this.#textSplitter = deps.textSplitter;
     this.#summaryGenerator = deps.summaryGenerator;
     this.#entityExtractor = deps.entityExtractor;
+    this.#memoryRepository = deps.memoryRepository;
   }
 
   async ingest(request: DocumentIngestionRequest): Promise<DocumentIngestionResult> {
@@ -247,6 +262,129 @@ export class DefaultDocumentService implements DocumentService {
   #fallbackSummary(text: string): string {
     const normalized = text.trim().replace(/\s+/g, " ");
     return normalized.slice(0, 240);
+  }
+
+  async updateDocument(input: DocumentUpdateRequest): Promise<DocumentRecordDTO> {
+    const parsed = DocumentUpdateRequestSchema.parse(input);
+    
+    const existing = this.#documentRepository.findById(parsed.id);
+    if (!existing) {
+      throw new Error(`Document ${parsed.id} not found`);
+    }
+
+    const patch: Partial<{
+      metadata: Record<string, unknown>;
+      title: string | null;
+    }> = {};
+
+    if (parsed.metadata !== undefined) {
+      patch.metadata = parsed.metadata;
+    }
+    if (parsed.title !== undefined) {
+      patch.title = parsed.title ?? null;
+    }
+
+    const updated = this.#documentRepository.update(parsed.id, patch);
+    const chunks = this.#chunkRepository.listByDocument(parsed.id);
+
+    return DocumentRecordSchema.parse({
+      ...updated,
+      chunks,
+    });
+  }
+
+  async deleteDocument(input: DocumentDeleteRequest): Promise<void> {
+    const parsed = DocumentDeleteRequestSchema.parse(input);
+    
+    const existing = this.#documentRepository.findById(parsed.id);
+    if (!existing) {
+      throw new Error(`Document ${parsed.id} not found`);
+    }
+
+    // Delete chunks first (cascade should handle this, but being explicit)
+    this.#chunkRepository.deleteByDocument(parsed.id);
+    
+    // Delete document
+    this.#documentRepository.delete(parsed.id);
+    
+    // Note: Vectra vectors are cleaned up separately if needed
+  }
+
+  async searchDocuments(input: DocumentSearchRequest): Promise<DocumentRecordDTO[]> {
+    const parsed = DocumentSearchRequestSchema.parse(input);
+    
+    // Use FTS5 to search document chunks by content (not just entity name)
+    // Reuse searchByEntityName but it searches chunk content via FTS
+    const matchingChunks = this.#chunkRepository.searchByEntityName(parsed.query, (parsed.limit ?? 200) * 2);
+    
+    // Get unique document IDs
+    const docIds = new Set<string>();
+    for (const chunk of matchingChunks) {
+      docIds.add(chunk.docId);
+    }
+
+    // Get documents
+    const documents: DocumentRecordDTO[] = [];
+    for (const docId of docIds) {
+      const doc = await this.getDocument(docId);
+      if (doc) {
+        documents.push(doc);
+      }
+    }
+
+    // Apply offset and limit
+    const offset = parsed.offset ?? 0;
+    const limit = parsed.limit ?? 200;
+    return documents.slice(offset, offset + limit);
+  }
+
+  async getDocumentReferences(input: DocumentGetReferencesRequest): Promise<any[]> {
+    const parsed = DocumentGetReferencesRequestSchema.parse(input);
+    
+    if (!this.#memoryRepository) {
+      throw new Error("Memory repository not available");
+    }
+
+    // Get all memories and filter by document reference
+    const allMemories = this.#memoryRepository.listAll(1000, 0);
+    const matchingMemories: any[] = [];
+
+    for (const memory of allMemories) {
+      const references = this.#memoryRepository.listReferences(memory.id);
+      if (references.some((ref: any) => ref.docId === parsed.docId)) {
+        matchingMemories.push({
+          ...memory,
+          references,
+        });
+      }
+    }
+
+    return matchingMemories;
+  }
+
+  async analyzeDocument(input: DocumentAnalyzeRequest): Promise<DocumentAnalysisDTO> {
+    const parsed = DocumentAnalyzeRequestSchema.parse(input);
+    
+    const document = await this.getDocument(parsed.docId);
+    if (!document) {
+      throw new Error(`Document ${parsed.docId} not found`);
+    }
+
+    // Extract entities from document if entity extractor is available
+    let entities: string[] | undefined;
+    if (this.#entityExtractor) {
+      const allChunks = document.chunks.map((chunk) => chunk.content).join(" ");
+      const extracted = await this.#entityExtractor.extract(allChunks);
+      entities = extracted.map((e) => e.name);
+    }
+
+    return DocumentAnalysisSchema.parse({
+      document,
+      entityCount: entities?.length ?? 0,
+      chunkCount: document.chunks.length,
+      totalSizeBytes: document.sizeBytes,
+      entities,
+    });
   }
 }
 

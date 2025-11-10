@@ -58,10 +58,30 @@ export const MemorySearchResultSchema = MemoryRecordSchema.extend({
   graphScore: z.number().optional(),
 });
 
+// Memory Enhancement Schemas
+export const MemoryGetRequestSchema = z.object({
+  id: z.string(),
+});
+
+export const MemoryGetByEntityRequestSchema = z.object({
+  entityId: z.string(),
+  limit: z.number().int().min(1).max(100).optional(),
+  offset: z.number().int().min(0).optional(),
+});
+
+export const MemoryGetByDocumentRequestSchema = z.object({
+  docId: z.string(),
+  limit: z.number().int().min(1).max(100).optional(),
+  offset: z.number().int().min(0).optional(),
+});
+
 export type MemoryLayer = z.infer<typeof MemoryLayerSchema>;
 export type MemoryReferenceDTO = z.infer<typeof MemoryReferenceSchema>;
 export type MemoryRecordDTO = z.infer<typeof MemoryRecordSchema>;
 export type MemoryAddInput = z.infer<typeof MemoryAddInputSchema>;
 export type MemorySearchRequest = z.infer<typeof MemorySearchRequestSchema>;
 export type MemorySearchResult = z.infer<typeof MemorySearchResultSchema>;
+export type MemoryGetRequest = z.infer<typeof MemoryGetRequestSchema>;
+export type MemoryGetByEntityRequest = z.infer<typeof MemoryGetByEntityRequestSchema>;
+export type MemoryGetByDocumentRequest = z.infer<typeof MemoryGetByDocumentRequestSchema>;
 

@@ -111,12 +111,50 @@ The sandbox provides:
 Inside the `run_code` sandbox, you have access to:
 
 ```typescript
-services.memory      // MemoryService
-services.document    // DocumentService
-services.knowledge   // KnowledgeGraphService
-services.search      // SearchService
-services.analytics   // AnalyticsService
-services.system      // SystemService
+services.memory.addMemory(...)
+services.memory.updateMemory(...)
+services.memory.deleteMemory(...)
+services.memory.searchMemories(...)
+services.memory.getMemory(...)
+services.memory.getMemoriesByEntity(...)
+services.memory.getMemoriesByDocument(...)
+
+services.document.ingest(...)
+services.document.getDocument(...)
+services.document.listDocuments(...)
+services.document.updateDocument(...)
+services.document.deleteDocument(...)
+services.document.searchDocuments(...)
+services.document.getDocumentReferences(...)
+services.document.analyzeDocument(...)
+
+services.knowledge.ensureEntities(...)
+services.knowledge.listEntities(...)
+services.knowledge.getEntity(...)
+services.knowledge.createEntity(...)
+services.knowledge.updateEntity(...)
+services.knowledge.deleteEntity(...)
+services.knowledge.createRelation(...)
+services.knowledge.getEntityRelations(...)
+services.knowledge.deleteRelation(...)
+services.knowledge.searchRelations(...)
+services.knowledge.searchEntities(...)
+services.knowledge.getEntitiesByType(...)
+services.knowledge.getEntitiesByTag(...)
+services.knowledge.tagEntity(...)
+services.knowledge.removeTag(...)
+services.knowledge.getTags(...)
+services.knowledge.readGraph(...)
+services.knowledge.getRelatedEntities(...)
+services.knowledge.findPath(...)
+services.knowledge.getEntityContext(...)
+services.knowledge.getEntitiesInDocument(...)
+services.knowledge.getEntitiesInMemory(...)
+
+services.search.searchMemories(...)
+services.analytics.recordMetric(...)
+services.analytics.listRecentMetrics(...)
+services.system.status(...)
 ```
 
 ### Tool Schema
@@ -200,25 +238,42 @@ Multi-tool mode exposes discrete tools for each operation, following traditional
 Multi-tool mode exposes the following tools:
 
 #### Memory Tools
-- `memory.add` - Add a memory entry
-- `memory.search` - Search memories with hybrid ranking
-- `memory.update` - Update existing memory (planned)
-- `memory.delete` - Delete memory entry (planned)
+- `memory.add` – Add a memory entry
+- `memory.search` – Hybrid search across memory index
+- `memory.get` – Retrieve a memory by ID
+- `memory.get_by_entity` – List memories mentioning an entity (FTS-backed)
+- `memory.get_by_document` – List memories referencing a document
 
 #### Document Tools
-- `document.store` - Ingest and process documents
-- `document.retrieve` - Get document by ID
-- `document.list` - List recently ingested documents
-- `document.analyze` - Analyze document content (planned)
-- `document.refs_for_memory` - List document references (planned)
-- `document.validate_refs` - Validate references (planned)
+- `document.store` – Ingest and process documents
+- `document.retrieve` – Get document plus chunks by ID
+- `document.list` – Paginated list of recent documents
+- `document.update` – Update document metadata/title
+- `document.delete` – Delete document and its chunks
+- `document.search` – Search documents via chunk FTS
+- `document.get_references` – Fetch memories that reference a document
+- `document.analyze` – Summarize document stats and entities
 
 #### Knowledge Graph Tools
-- `knowledge.list_entities` - List entities with counts
-- `knowledge.get_entity` - Get entity details (planned)
-- `knowledge.create_entity` - Ensure entity exists (planned)
-- `knowledge.create_relation` - Add relationship (planned)
-- `knowledge.search_nodes` - Search KG nodes (planned)
+- `knowledge.list_entities` – List entities with counts
+- `knowledge.get_entity` – Retrieve entity detail + relation counts
+- `knowledge.create_entity` – Manually upsert entity
+- `knowledge.update_entity` – Update entity fields/tags
+- `knowledge.delete_entity` – Remove entity and relations
+- `knowledge.create_relation` – Create edges between entities
+- `knowledge.get_relations` – List relations for an entity
+- `knowledge.delete_relation` – Remove relation by ID
+- `knowledge.search_relations` – Filter relations (by type)
+- `knowledge.search_entities` – FTS/entity filter by name/type/tag
+- `knowledge.get_entities_by_type` – List entities for a type
+- `knowledge.get_entities_by_tag` – List entities with a tag
+- `knowledge.tag_entity` / `knowledge.remove_tag` / `knowledge.get_tags`
+- `knowledge.read_graph` – BFS neighborhood snapshot
+- `knowledge.get_related_entities` – Direct neighbors (1 hop)
+- `knowledge.find_path` – Shortest path between entities (BFS)
+- `knowledge.get_entity_context` – Documents/memories referencing entity
+- `knowledge.get_entities_in_document` – Extract entities from a document
+- `knowledge.get_entities_in_memory` – Extract entities from a memory
 
 #### System Tools
 - `system.status` - Report system health and statistics
@@ -250,10 +305,13 @@ Use multi-tool mode when:
 Manages memory records across different layers (STM, LTM, Episodic, Semantic, Documentary).
 
 **Operations:**
-- `addMemory(input)` - Create new memory with embeddings
-- `updateMemory(id, patch)` - Update memory content/metadata
-- `deleteMemory(id)` - Remove memory and its vectors
-- `searchMemories(request)` - Hybrid search across memories
+- `addMemory(input)` – Create new memory with embeddings
+- `updateMemory(id, patch)` – Update memory content/metadata
+- `deleteMemory(id)` – Remove memory and its vectors
+- `searchMemories(request)` – Hybrid search across memories
+- `getMemory({ id })` – Retrieve full memory with references
+- `getMemoriesByEntity({ entityId, ... })` – FTS query for entity mentions
+- `getMemoriesByDocument({ docId, ... })` – Memories referencing a document
 
 **Memory Layers:**
 - `stm` - Short-term memory (recent, temporary)
@@ -267,14 +325,19 @@ Manages memory records across different layers (STM, LTM, Episodic, Semantic, Do
 Handles document ingestion, chunking, and retrieval.
 
 **Operations:**
-- `ingest(request)` - Process and store documents
+- `ingest(request)` – Process and store documents
   - Reads from file path or inline content
   - Chunks text with configurable size/overlap
   - Generates embeddings for each chunk
   - Extracts entities (optional)
   - Creates summaries (optional)
-- `getDocument(id)` - Retrieve document with chunks
-- `listDocuments(limit, offset)` - Paginated document list
+- `getDocument(id)` – Retrieve document with chunks
+- `listDocuments(limit, offset)` – Paginated document list
+- `updateDocument({ id, ... })` – Update metadata/title without re-ingest
+- `deleteDocument({ id })` – Remove document and chunks
+- `searchDocuments({ query, ... })` – FTS5 search on chunk content
+- `getDocumentReferences({ docId })` – Related memories referencing the doc
+- `analyzeDocument({ docId })` – High-level stats and entity extraction snapshot
 
 **Document Processing:**
 1. Load content (file or inline)
@@ -290,8 +353,18 @@ Handles document ingestion, chunking, and retrieval.
 Manages entities and relationships extracted from documents and memories.
 
 **Operations:**
-- `ensureEntities(entities, context)` - Upsert entities with context
-- `listEntities(limit, offset)` - Get top entities by count
+- `ensureEntities(entities, context)` – Upsert entities with context
+- `listEntities(limit, offset)` – Get top entities by count
+- `getEntity(request)` – Detailed entity view with relation counts
+- `createEntity(request)` / `updateEntity(request)` / `deleteEntity(request)`
+- `createRelation(request)` / `getEntityRelations(request)` / `deleteRelation(request)` / `searchRelations(request)`
+- `searchEntities(request)` / `getEntitiesByType(request)` / `getEntitiesByTag(request)`
+- `tagEntity(request)` / `removeTag(request)` / `getTags()`
+- `readGraph(request)` – Multi-depth BFS snapshot
+- `getRelatedEntities(request)` – Direct neighbors
+- `findPath(request)` – Shortest path between nodes
+- `getEntityContext(request)` – Documents/memories mentioning entity
+- `getEntitiesInDocument(request)` / `getEntitiesInMemory(request)` – On-demand extraction
 
 **Entity Types:**
 - Person
@@ -483,6 +556,42 @@ Provides system health and operational status.
   "minImportance": 0.5
 }
 ```
+
+---
+
+### memory.get
+
+**Purpose**: Retrieve a specific memory record (including references)
+
+**Input Schema:** `{ id: string }`
+
+**Output Schema:** `{ memory?: MemoryRecord }`
+
+**When to Use:** Display memory details, verify updates/deletions, inspect references.
+
+---
+
+### memory.get_by_entity
+
+**Purpose**: List memories that mention a particular entity (FTS-based)
+
+**Input Schema:** `{ entityId: string; limit?: number; offset?: number }`
+
+**Output Schema:** `{ memories: MemoryRecord[] }`
+
+**When to Use:** Contextualize entities with episodic/semantic memories.
+
+---
+
+### memory.get_by_document
+
+**Purpose**: List memories that reference a given document
+
+**Input Schema:** `{ docId: string; limit?: number; offset?: number }`
+
+**Output Schema:** `{ memories: MemoryRecord[] }`
+
+**When to Use:** Trace how documents are referenced in the memory store.
 
 ---
 
@@ -755,6 +864,137 @@ Provides system health and operational status.
   ]
 }
 ```
+
+---
+
+### document.update
+
+**Purpose**: Patch document metadata or title without re-ingesting content
+
+**Input Schema:** `{ id: string; metadata?: Record<string, any>; title?: string }`
+
+**Output Schema:** `{ document: DocumentRecord }`
+
+**When to Use:** Adjust metadata (e.g., title/tags) post ingestion.
+
+---
+
+### document.delete
+
+**Purpose**: Remove a document and its chunks
+
+**Input Schema:** `{ id: string }`
+
+**Output Schema:** `{ success: boolean }`
+
+**When to Use:** Clean up outdated or erroneous documents.
+
+---
+
+### document.search
+
+**Purpose**: Full-text search over document chunks
+
+**Input Schema:** `{ query: string; limit?: number; offset?: number }`
+
+**Output Schema:** `{ documents: DocumentRecord[] }`
+
+**When to Use:** Locate documents by content snippets quickly.
+
+---
+
+### document.get_references
+
+**Purpose**: List memories that reference a document
+
+**Input Schema:** `{ docId: string }`
+
+**Output Schema:** `{ memories: MemoryRecord[] }`
+
+**When to Use:** Understand where a document is cited across memories.
+
+---
+
+### document.analyze
+
+**Purpose**: Summarize document stats (entities, chunk count, size)
+
+**Input Schema:** `{ docId: string }`
+
+**Output Schema:** `{ analysis: { document, entityCount, chunkCount, totalSizeBytes, entities? } }`
+
+**When to Use:** Quick health check after ingestion, generate dashboards.
+
+---
+
+### knowledge.get_entity
+
+**Purpose:** Retrieve entity details (including relation counts)
+
+**Input Schema:** `{ id?: string; name?: string }`
+
+**Output Schema:** `{ entity?: KnowledgeEntityDetail }`
+
+---
+
+### knowledge.create_entity / knowledge.update_entity / knowledge.delete_entity
+
+**Purpose:** Manual entity lifecycle management
+
+**Inputs:** Entity name/type/tags (for create/update), `{ id }` for delete  
+**Outputs:** `{ entity: KnowledgeEntity }` or `{ success: true }`
+
+---
+
+### knowledge.create_relation / knowledge.get_relations / knowledge.delete_relation / knowledge.search_relations
+
+**Purpose:** Manage relationships between entities
+
+**Input Highlights:**
+- `create_relation`: `{ src, dst, relation, weight?, metadata? }`
+- `get_relations`: `{ entityId, relationType?, limit? }`
+- `delete_relation`: `{ id }`
+- `search_relations`: `{ relationType?, limit?, offset? }`
+
+**Outputs:** `{ relation }`, `{ relations: Edge[] }`, `{ success: true }`
+
+---
+
+### knowledge.search_entities / knowledge.get_entities_by_type / knowledge.get_entities_by_tag
+
+**Purpose:** Discover entities via FTS/type/tag filters
+
+**Input Schema:** `{ name?, type?, tags?, limit?, offset? }` etc.  
+**Output Schema:** `{ entities: KnowledgeEntity[] }`
+
+---
+
+### knowledge.tag_entity / knowledge.remove_tag / knowledge.get_tags
+
+**Purpose:** Manage entity tagging taxonomy
+
+**Inputs:** `{ entityId, tags[] }`, `{ entityId, tag }`, `{}`  
+**Outputs:** `{ entity: KnowledgeEntity }`, `{ tags: string[] }`
+
+---
+
+### knowledge.read_graph / knowledge.get_related_entities / knowledge.find_path
+
+**Purpose:** Graph traversal utilities
+
+- `read_graph`: `{ entityId, depth?, relationType? } → { graph: { entity, relations, neighbors } }`
+- `get_related_entities`: `{ entityId, relationType?, limit? } → { entities: [...] }`
+- `find_path`: `{ src, dst, maxDepth? } → { path: Edge[] }`
+
+---
+
+### knowledge.get_entity_context / knowledge.get_entities_in_document / knowledge.get_entities_in_memory
+
+**Purpose:** Context extraction across modalities
+
+- `get_entity_context`: `{ entityId } → { documents, memories, chunks }`
+- `get_entities_in_document`: `{ docId } → { entities: [...] }`
+- `get_entities_in_memory`: `{ memoryId } → { entities: [...] }`
 
 ---
 

@@ -62,6 +62,39 @@ export const DocumentListRequestSchema = z.object({
   offset: z.number().int().min(0).optional(),
 });
 
+// Document Enhancement Schemas
+export const DocumentUpdateRequestSchema = z.object({
+  id: z.string(),
+  metadata: DocumentMetadataSchema.optional(),
+  title: z.string().optional(),
+});
+
+export const DocumentDeleteRequestSchema = z.object({
+  id: z.string(),
+});
+
+export const DocumentSearchRequestSchema = z.object({
+  query: z.string().min(1),
+  limit: z.number().int().min(1).max(200).optional(),
+  offset: z.number().int().min(0).optional(),
+});
+
+export const DocumentGetReferencesRequestSchema = z.object({
+  docId: z.string(),
+});
+
+export const DocumentAnalyzeRequestSchema = z.object({
+  docId: z.string(),
+});
+
+export const DocumentAnalysisSchema = z.object({
+  document: DocumentRecordSchema,
+  entityCount: z.number().int().nonnegative(),
+  chunkCount: z.number().int().nonnegative(),
+  totalSizeBytes: z.number().int().nonnegative(),
+  entities: z.array(z.string()).optional(),
+});
+
 export type DocumentIngestionOptions = z.infer<typeof DocumentIngestionOptionsSchema>;
 export type DocumentIngestionRequest = z.infer<typeof DocumentIngestionRequestSchema>;
 export type DocumentChunkDTO = z.infer<typeof DocumentChunkSchema>;
@@ -69,4 +102,10 @@ export type DocumentRecordDTO = z.infer<typeof DocumentRecordSchema>;
 export type DocumentIngestionResult = z.infer<typeof DocumentIngestionResultSchema>;
 export type DocumentRetrieveRequest = z.infer<typeof DocumentRetrieveRequestSchema>;
 export type DocumentListRequest = z.infer<typeof DocumentListRequestSchema>;
+export type DocumentUpdateRequest = z.infer<typeof DocumentUpdateRequestSchema>;
+export type DocumentDeleteRequest = z.infer<typeof DocumentDeleteRequestSchema>;
+export type DocumentSearchRequest = z.infer<typeof DocumentSearchRequestSchema>;
+export type DocumentGetReferencesRequest = z.infer<typeof DocumentGetReferencesRequestSchema>;
+export type DocumentAnalyzeRequest = z.infer<typeof DocumentAnalyzeRequestSchema>;
+export type DocumentAnalysisDTO = z.infer<typeof DocumentAnalysisSchema>;
 
