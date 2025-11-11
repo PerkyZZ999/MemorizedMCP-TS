@@ -66,7 +66,7 @@ MCP_MULTI_TOOL=false
 MCP_MULTI_TOOL=true
 ```
 
-You can flip modes on the published npm package using CLI flags:
+You can flip modes on the published npm package using CLI flags (and optionally point storage somewhere else):
 
 ```bash
 # Force multi-tool mode via the CLI
@@ -77,6 +77,9 @@ npx -y memorizedmcp-ts --single-tool
 
 # Load a custom .env file and inject overrides
 npx -y memorizedmcp-ts --config ~/.memorized/.env.production --env LOG_LEVEL=debug
+
+# Override the data root (DATA_ROOT) for SQLite/vectors/backups
+npx -y memorizedmcp-ts --multi-tool --path "$PWD/.memorized"
 ```
 
 ### When to Use Each Mode

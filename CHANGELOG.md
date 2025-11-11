@@ -1,5 +1,13 @@
 # Changelog
 
+# [1.1.3] - 2025-11-11
+
+### Added
+- Introduced `--path` (`-p`) CLI flag to override `DATA_ROOT`, making it easy to colocate SQLite/vectors within project workspaces.
+
+### Changed
+- Default banner fallback version now tracks `v1.1.3`.
+
 ## [1.1.0] - 2025-11-10
 
 ### Added

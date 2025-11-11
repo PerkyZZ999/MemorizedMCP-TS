@@ -41,6 +41,7 @@ CLI flags:
 | `--config <path>` | Load an alternate `.env` file before bootstrapping |
 | `--multi-tool` | Force multi-tool registration (`MCP_MULTI_TOOL=true`) |
 | `--single-tool` | Force single-tool sandbox (`MCP_MULTI_TOOL=false`) |
+| `--path <dir>` | Override the root directory for SQLite + vector data (`DATA_ROOT`) |
 | `--env KEY=VALUE` | Inject arbitrary environment overrides (repeatable) |
 | `--help` | Print CLI usage |
 
@@ -60,6 +61,9 @@ npx -y memorizedmcp-ts --multi-tool
 
 # or force single-tool sandbox
 npx -y memorizedmcp-ts --single-tool
+
+# or pin the storage root alongside other flags
+npx -y memorizedmcp-ts --multi-tool --path "$PWD/.memorized"
 ```
 
 For local development you can still run the source directly:
@@ -114,7 +118,7 @@ The published package is compatible with Cursor’s install link generator [[Cur
 }
 ```
 
-Switch between modes by replacing `--multi-tool` with `--single-tool`, or omit the flag to defer to `.env` defaults. Additional overrides can be provided via repeated `--env KEY=VALUE` arguments.
+Switch between modes by replacing `--multi-tool` with `--single-tool`, or omit the flag to defer to `.env` defaults. Override storage with `--path <dir>` or provide additional overrides via repeated `--env KEY=VALUE` arguments.
 
 ---
 

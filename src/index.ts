@@ -24,7 +24,7 @@ export async function bootstrap(
   const config = loadConfig({}, { envFile, envVars });
   const logger = createLogger(config);
   const mode = config.mcp.multiTool ? "multi-tool" : "single-tool";
-  const version = process.env.npm_package_version ?? "1.1.0";
+  const version = process.env.npm_package_version ?? "1.1.3";
 
   const banner = renderBanner({
     appName: "MemorizedMCP-TS",
@@ -192,6 +192,16 @@ function parseCliArgs(argv: string[]): CliParseResult {
         i += 1;
         break;
       }
+      case "-p":
+      case "--path": {
+        const value = argv[i + 1];
+        if (!value) {
+          throw new Error("Missing value for --path");
+        }
+        result.envVars.DATA_ROOT = value;
+        i += 1;
+        break;
+      }
       default:
         throw new Error(`Unknown argument: ${arg}`);
     }
@@ -208,12 +218,14 @@ function printHelp(): void {
     "  -c, --config <path>      Load environment variables from the specified .env file",
     "      --multi-tool         Force multi-tool mode (sets MCP_MULTI_TOOL=true)",
     "      --single-tool        Force single-tool mode (sets MCP_MULTI_TOOL=false)",
+    "  -p, --path <dir>         Override DATA_ROOT for SQLite/vectors/backups",
     "  -e, --env KEY=VALUE      Inject additional environment variables (repeatable)",
     "  -h, --help               Show this help message",
     "",
     "Examples:",
     "  memorizedmcp-ts --multi-tool",
     "  memorizedmcp-ts --config ./prod.env --env LOG_LEVEL=debug",
+    "  memorizedmcp-ts --path ./.memorized",
   ];
 
   console.log(lines.join("\n"));
