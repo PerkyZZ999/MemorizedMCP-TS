@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.7] - 2025-11-11
+
+### Changed
+- Bump npm package metadata to `v1.1.7` to publish the latest shutdown hardening fixes.
+
 ## [1.1.6] - 2025-11-11
 
 ### Fixed
