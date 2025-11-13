@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.8] - 2025-11-11
+
+### Changed
+- Bump npm package metadata to `v1.1.8` to capture the latest shutdown behaviour adjustments.
+
 ## [1.1.7] - 2025-11-11
 
 ### Changed

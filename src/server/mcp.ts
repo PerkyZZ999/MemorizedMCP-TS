@@ -68,7 +68,7 @@ export async function startMcpServer(
   const server = new McpServer(
     {
       name: "memorizedmcp-ts",
-      version: process.env.npm_package_version ?? "1.1.7",
+      version: process.env.npm_package_version ?? "1.1.8",
     },
     {
       instructions: buildInstructions(config.mcp.multiTool),
