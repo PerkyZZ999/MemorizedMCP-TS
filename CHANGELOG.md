@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.5] - 2025-11-11
+
+### Fixed
+- Close the MCP stdio transport and stop scheduled jobs when the client disconnects, ensuring the server exits cleanly instead of lingering in the background.
+- Harden the npm bin shim to propagate termination signals and kill the Bun subprocess on Windows, preventing orphaned `bun.exe` processes.
+- Detect closed stdio streams (e.g. when an MCP host disables the server) and trigger shutdown immediately.
+
+### Changed
+- Default banner and tool metadata now fall back to `v1.1.5`.
+
 ## [1.1.4] - 2025-11-11
 
 ### Fixed
