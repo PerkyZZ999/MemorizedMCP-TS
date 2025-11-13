@@ -53,6 +53,25 @@ const terminateChild = (signal) => {
   }
 };
 
+const handleInputClosure = () => {
+  terminateChild();
+};
+
+const handleInputError = (error) => {
+  console.error("stdin error detected; terminating Bun subprocess.");
+  console.error(error);
+  terminateChild();
+};
+
+if (process.stdin) {
+  if (typeof process.stdin.resume === "function") {
+    process.stdin.resume();
+  }
+  process.stdin.on("end", handleInputClosure);
+  process.stdin.on("close", handleInputClosure);
+  process.stdin.on("error", handleInputError);
+}
+
 for (const signal of ["SIGINT", "SIGTERM", "SIGBREAK"]) {
   process.on(signal, () => {
     terminateChild(signal);

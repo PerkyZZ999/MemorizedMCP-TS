@@ -59,17 +59,7 @@ export async function bootstrap(
 
   let shuttingDown = false;
   let transportHandle: McpServerHandle["transport"] | undefined;
-
-  const removeStdioListeners = () => {
-    const stdin = process.stdin;
-    if (typeof stdin.off === "function") {
-      stdin.off("end", handleStdinEnd);
-      stdin.off("close", handleStdinClose);
-    } else {
-      stdin.removeListener("end", handleStdinEnd);
-      stdin.removeListener("close", handleStdinClose);
-    }
-  };
+  let parentCheckInterval: NodeJS.Timeout | undefined;
 
   function handleStdinEnd(): void {
     logger.info("STDIN ended; initiating shutdown.");
@@ -81,11 +71,34 @@ export async function bootstrap(
     void shutdown("stdio-stdin-close");
   }
 
+  function handleStdinError(error: unknown): void {
+    logger.warn({ error }, "STDIN error detected; initiating shutdown.");
+    void shutdown("stdio-stdin-error");
+  }
+
+  const removeStdioListeners = () => {
+    const stdin = process.stdin;
+    if (typeof stdin.off === "function") {
+      stdin.off("end", handleStdinEnd);
+      stdin.off("close", handleStdinClose);
+      stdin.off("error", handleStdinError);
+    } else {
+      stdin.removeListener("end", handleStdinEnd);
+      stdin.removeListener("close", handleStdinClose);
+      stdin.removeListener("error", handleStdinError);
+    }
+  };
+
   const shutdown = async (reason?: string) => {
     if (shuttingDown) {
       return;
     }
     shuttingDown = true;
+
+    if (parentCheckInterval) {
+      clearInterval(parentCheckInterval);
+      parentCheckInterval = undefined;
+    }
 
     removeStdioListeners();
 
@@ -140,6 +153,31 @@ export async function bootstrap(
   const stdin = process.stdin;
   stdin.on("end", handleStdinEnd);
   stdin.on("close", handleStdinClose);
+  stdin.on("error", handleStdinError);
+  stdin.resume();
+
+  const parentPidValue = process.env.MEMORIZEDMCP_PARENT_PID;
+  const parentPid = parentPidValue
+    ? Number.parseInt(parentPidValue, 10)
+    : undefined;
+
+  if (parentPid !== undefined && !Number.isNaN(parentPid)) {
+    const checkParentAlive = () => {
+      try {
+        process.kill(parentPid, 0);
+      } catch (error) {
+        logger.warn(
+          { error, parentPid },
+          "Detected missing parent process; initiating shutdown.",
+        );
+        void shutdown("parent-process-gone");
+      }
+    };
+    parentCheckInterval = setInterval(checkParentAlive, 5_000);
+    if (typeof parentCheckInterval.unref === "function") {
+      parentCheckInterval.unref();
+    }
+  }
 
   const { transport } = await startMcpServer(container);
   transportHandle = transport;
