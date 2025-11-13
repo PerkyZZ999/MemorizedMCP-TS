@@ -64,12 +64,18 @@ const handleInputError = (error) => {
 };
 
 if (process.stdin) {
-  if (typeof process.stdin.resume === "function") {
-    process.stdin.resume();
+  const shouldWatch =
+    typeof process.stdin.on === "function" &&
+    (process.stdin.isTTY === undefined || process.stdin.isTTY === false);
+
+  if (shouldWatch) {
+    if (typeof process.stdin.resume === "function") {
+      process.stdin.resume();
+    }
+    process.stdin.on("end", handleInputClosure);
+    process.stdin.on("close", handleInputClosure);
+    process.stdin.on("error", handleInputError);
   }
-  process.stdin.on("end", handleInputClosure);
-  process.stdin.on("close", handleInputClosure);
-  process.stdin.on("error", handleInputError);
 }
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGBREAK"]) {

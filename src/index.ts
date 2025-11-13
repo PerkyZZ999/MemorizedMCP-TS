@@ -60,6 +60,7 @@ export async function bootstrap(
   let shuttingDown = false;
   let transportHandle: McpServerHandle["transport"] | undefined;
   let parentCheckInterval: NodeJS.Timeout | undefined;
+  let monitoringStdin = false;
 
   function handleStdinEnd(): void {
     logger.info("STDIN ended; initiating shutdown.");
@@ -77,6 +78,9 @@ export async function bootstrap(
   }
 
   const removeStdioListeners = () => {
+    if (!monitoringStdin) {
+      return;
+    }
     const stdin = process.stdin;
     if (typeof stdin.off === "function") {
       stdin.off("end", handleStdinEnd);
@@ -87,6 +91,7 @@ export async function bootstrap(
       stdin.removeListener("close", handleStdinClose);
       stdin.removeListener("error", handleStdinError);
     }
+    monitoringStdin = false;
   };
 
   const shutdown = async (reason?: string) => {
@@ -151,10 +156,24 @@ export async function bootstrap(
   }
 
   const stdin = process.stdin;
-  stdin.on("end", handleStdinEnd);
-  stdin.on("close", handleStdinClose);
-  stdin.on("error", handleStdinError);
-  stdin.resume();
+  const shouldMonitorStdin =
+    typeof stdin.on === "function" &&
+    (stdin.isTTY === undefined || stdin.isTTY === false);
+
+  if (shouldMonitorStdin) {
+    stdin.on("end", handleStdinEnd);
+    stdin.on("close", handleStdinClose);
+    stdin.on("error", handleStdinError);
+    if (typeof stdin.resume === "function") {
+      stdin.resume();
+    }
+    monitoringStdin = true;
+  } else {
+    logger.debug(
+      { isTTY: stdin.isTTY },
+      "STDIN is TTY; skipping closure monitoring.",
+    );
+  }
 
   const parentPidValue = process.env.MEMORIZEDMCP_PARENT_PID;
   const parentPid = parentPidValue

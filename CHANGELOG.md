@@ -13,6 +13,7 @@
 - Ensure the CLI wrapper watches for stdin closure/errors so disabling the MCP server tears down the Bun subprocess immediately.
 - Detect closed stdio streams (e.g. when an MCP host disables the server) and trigger shutdown immediately.
 - Introduce a parent PID heartbeat watchdog so child Bun workers exit if the Cursor parent terminates without sending signals.
+- Skip stdin monitoring when attached to an interactive TTY so manual `bun run` sessions stay alive while Cursor pipes still trigger shutdown.
 
 ### Changed
 - Default banner and tool metadata now fall back to `v1.1.6`.
