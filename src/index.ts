@@ -57,14 +57,37 @@ export async function bootstrap(
   }
   scheduler.startAll();
 
-  let transportHandle: McpServerHandle["transport"] | undefined;
   let shuttingDown = false;
+  let transportHandle: McpServerHandle["transport"] | undefined;
+
+  const removeStdioListeners = () => {
+    const stdin = process.stdin;
+    if (typeof stdin.off === "function") {
+      stdin.off("end", handleStdinEnd);
+      stdin.off("close", handleStdinClose);
+    } else {
+      stdin.removeListener("end", handleStdinEnd);
+      stdin.removeListener("close", handleStdinClose);
+    }
+  };
+
+  function handleStdinEnd(): void {
+    logger.info("STDIN ended; initiating shutdown.");
+    void shutdown("stdio-stdin-end");
+  }
+
+  function handleStdinClose(): void {
+    logger.info("STDIN closed; initiating shutdown.");
+    void shutdown("stdio-stdin-close");
+  }
 
   const shutdown = async (reason?: string) => {
     if (shuttingDown) {
       return;
     }
     shuttingDown = true;
+
+    removeStdioListeners();
 
     if (reason) {
       logger.info({ reason }, "Shutting down MemorizedMCP-TS...");
@@ -109,6 +132,14 @@ export async function bootstrap(
 
   process.once("SIGINT", handleSignal);
   process.once("SIGTERM", handleSignal);
+  if (typeof process.once === "function" && process.platform === "win32") {
+    // Handle Ctrl+Break on Windows
+    process.once("SIGBREAK", handleSignal);
+  }
+
+  const stdin = process.stdin;
+  stdin.on("end", handleStdinEnd);
+  stdin.on("close", handleStdinClose);
 
   const { transport } = await startMcpServer(container);
   transportHandle = transport;
