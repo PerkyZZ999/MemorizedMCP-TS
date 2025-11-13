@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.5] - 2025-11-11
+## [1.1.6] - 2025-11-11
 
 ### Fixed
 - Close the MCP stdio transport and stop scheduled jobs when the client disconnects, ensuring the server exits cleanly instead of lingering in the background.
@@ -9,9 +9,9 @@
 - Introduce a parent PID heartbeat watchdog so child Bun workers exit if the Cursor parent terminates without sending signals.
 
 ### Changed
-- Default banner and tool metadata now fall back to `v1.1.5`.
+- Default banner and tool metadata now fall back to `v1.1.6`.
 
-## [1.1.4] - 2025-11-11
+## [1.1.5] - 2025-11-11
 
 ### Fixed
 - Close the MCP stdio transport and stop scheduled jobs when the client disconnects, ensuring the server exits cleanly instead of lingering in the background.
@@ -19,7 +19,7 @@
 - Detect closed stdio streams (e.g. when an MCP host disables the server) and trigger shutdown immediately.
 
 ### Changed
-- Default banner and tool metadata now fall back to `v1.1.4`.
+- Default banner and tool metadata now fall back to `v1.1.5`.
 
 ## [1.1.3] - 2025-11-11
 

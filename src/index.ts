@@ -25,7 +25,7 @@ export async function bootstrap(
   const config = loadConfig({}, { envFile, envVars });
   const logger = createLogger(config);
   const mode = config.mcp.multiTool ? "multi-tool" : "single-tool";
-  const version = process.env.npm_package_version ?? "1.1.5";
+  const version = process.env.npm_package_version ?? "1.1.6";
 
   const banner = renderBanner({
     appName: "MemorizedMCP-TS",
