@@ -13,6 +13,10 @@ const cliArgs = process.argv.slice(2);
 
 const child = spawn(bunExecutable, [scriptPath, ...cliArgs], {
   stdio: "inherit",
+  env: {
+    ...process.env,
+    MEMORIZEDMCP_PARENT_PID: String(process.pid),
+  },
 });
 
 let terminating = false;

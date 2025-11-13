@@ -6,6 +6,7 @@
 - Close the MCP stdio transport and stop scheduled jobs when the client disconnects, ensuring the server exits cleanly instead of lingering in the background.
 - Harden the npm bin shim to propagate termination signals and kill the Bun subprocess on Windows, preventing orphaned `bun.exe` processes.
 - Detect closed stdio streams (e.g. when an MCP host disables the server) and trigger shutdown immediately.
+- Introduce a parent PID heartbeat watchdog so child Bun workers exit if the Cursor parent terminates without sending signals.
 
 ### Changed
 - Default banner and tool metadata now fall back to `v1.1.5`.
