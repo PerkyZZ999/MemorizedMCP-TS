@@ -15,9 +15,60 @@ const child = spawn(bunExecutable, [scriptPath, ...cliArgs], {
   stdio: "inherit",
 });
 
+let terminating = false;
+
+const terminateChild = (signal) => {
+  if (terminating) {
+    return;
+  }
+  terminating = true;
+
+  if (child.exitCode !== null || child.killed) {
+    return;
+  }
+
+  if (process.platform === "win32") {
+    const killer = spawn("taskkill", [
+      "/F",
+      "/T",
+      "/PID",
+      String(child.pid),
+    ]);
+    killer.on("error", (error) => {
+      console.error(
+        "Failed to terminate Bun subprocess via taskkill. You may need to close it manually.",
+      );
+      console.error(error);
+    });
+  } else {
+    try {
+      child.kill(signal ?? "SIGTERM");
+    } catch (error) {
+      console.error("Failed to signal Bun subprocess during shutdown:", error);
+    }
+  }
+};
+
+for (const signal of ["SIGINT", "SIGTERM", "SIGBREAK"]) {
+  process.on(signal, () => {
+    terminateChild(signal);
+  });
+}
+
+process.on("exit", () => {
+  terminateChild();
+});
+
 child.on("exit", (code, signal) => {
+  terminating = true;
   if (signal) {
-    process.kill(process.pid, signal);
+    const normalized =
+      signal === "SIGINT"
+        ? 130
+        : signal === "SIGTERM"
+        ? 143
+        : code ?? 0;
+    process.exit(normalized);
     return;
   }
   process.exit(code ?? 0);

@@ -55,13 +55,20 @@ import {
 } from "../schemas/knowledge";
 import type { ServiceRegistry } from "../services/types";
 
-export async function startMcpServer(container: AppContainer): Promise<void> {
+export interface McpServerHandle {
+  readonly server: McpServer;
+  readonly transport: StdioServerTransport;
+}
+
+export async function startMcpServer(
+  container: AppContainer,
+): Promise<McpServerHandle> {
   const { config, logger, services } = container;
 
   const server = new McpServer(
     {
       name: "memorizedmcp-ts",
-      version: process.env.npm_package_version ?? "0.1.0",
+      version: process.env.npm_package_version ?? "1.1.4",
     },
     {
       instructions: buildInstructions(config.mcp.multiTool),
@@ -77,6 +84,8 @@ export async function startMcpServer(container: AppContainer): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   logger.info("MCP stdio server initialized.");
+
+  return { server, transport };
 }
 
 function registerRunCodeTool(

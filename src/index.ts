@@ -4,6 +4,7 @@ import { loadConfig, resetConfigCache } from "./config";
 import { createLogger } from "./logging";
 import { createAppContainer } from "./container";
 import { startMcpServer } from "./server/mcp";
+import type { McpServerHandle } from "./server/mcp";
 import { JobScheduler } from "./jobs/scheduler";
 import { buildScheduledJobs } from "./jobs/definitions";
 
@@ -24,7 +25,7 @@ export async function bootstrap(
   const config = loadConfig({}, { envFile, envVars });
   const logger = createLogger(config);
   const mode = config.mcp.multiTool ? "multi-tool" : "single-tool";
-  const version = process.env.npm_package_version ?? "1.1.3";
+  const version = process.env.npm_package_version ?? "1.1.4";
 
   const banner = renderBanner({
     appName: "MemorizedMCP-TS",
@@ -55,27 +56,72 @@ export async function bootstrap(
     scheduler.register(job);
   }
   scheduler.startAll();
-  await startMcpServer(container);
 
+  let transportHandle: McpServerHandle["transport"] | undefined;
   let shuttingDown = false;
-  const shutdown = async () => {
+
+  const shutdown = async (reason?: string) => {
     if (shuttingDown) {
       return;
     }
     shuttingDown = true;
-    logger.info("Shutting down MemorizedMCP-TS...");
-    scheduler.stopAll();
-    await container.shutdown();
-    process.exit(0);
+
+    if (reason) {
+      logger.info({ reason }, "Shutting down MemorizedMCP-TS...");
+    } else {
+      logger.info("Shutting down MemorizedMCP-TS...");
+    }
+
+    let exitCode = 0;
+
+    try {
+      scheduler.stopAll();
+    } catch (error) {
+      exitCode = 1;
+      logger.error({ error }, "Failed to stop scheduled jobs");
+    }
+
+    if (transportHandle && reason !== "stdio-transport-closed") {
+      try {
+        await transportHandle.close();
+      } catch (error) {
+        logger.warn(
+          { error },
+          "Failed to close MCP stdio transport gracefully; continuing shutdown",
+        );
+      }
+    }
+
+    try {
+      await container.shutdown();
+    } catch (error) {
+      exitCode = 1;
+      logger.error({ error }, "Error during container shutdown");
+    }
+
+    process.exit(exitCode);
   };
 
   const handleSignal = (signal: NodeJS.Signals) => {
     logger.info({ signal }, "Received termination signal");
-    void shutdown();
+    void shutdown(`signal:${signal}`);
   };
 
   process.once("SIGINT", handleSignal);
   process.once("SIGTERM", handleSignal);
+
+  const { transport } = await startMcpServer(container);
+  transportHandle = transport;
+  transport.onclose = () => {
+    logger.info(
+      "MCP stdio transport closed; shutting down MemorizedMCP-TS server.",
+    );
+    void shutdown("stdio-transport-closed");
+  };
+  transport.onerror = (error) => {
+    logger.error({ error }, "MCP stdio transport error");
+    void shutdown("stdio-transport-error");
+  };
 
   logger.info({ mode }, "MemorizedMCP-TS server is ready.");
 
