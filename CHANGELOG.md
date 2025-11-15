@@ -1,47 +1,9 @@
 # Changelog
 
-## [1.1.9] - 2025-11-14
-
-### Fixed
-- Disable stdin-based shutdown monitoring by default and make it opt-in via `MCP_ENABLE_STDIN_SHUTDOWN`, preventing the CLI/npx workflow from exiting immediately in Cursor 2.0.
-- Parent PID watchdog now auto-enables whenever `MEMORIZEDMCP_PARENT_PID` is provided, keeping the anti-zombie protection without impacting manual runs.
-- Document the new shutdown toggles in `README.md` and `docs/MCP-Server-Guide.md`.
+## [1.2.0] - 2025-11-15
 
 ### Changed
-- Bump npm package metadata to `v1.1.9`.
-
-## [1.1.8] - 2025-11-11
-
-### Changed
-- Bump npm package metadata to `v1.1.8` to capture the latest shutdown behaviour adjustments.
-
-## [1.1.7] - 2025-11-11
-
-### Changed
-- Bump npm package metadata to `v1.1.7` to publish the latest shutdown hardening fixes.
-
-## [1.1.6] - 2025-11-11
-
-### Fixed
-- Close the MCP stdio transport and stop scheduled jobs when the client disconnects, ensuring the server exits cleanly instead of lingering in the background.
-- Harden the npm bin shim to propagate termination signals and kill the Bun subprocess on Windows, preventing orphaned `bun.exe` processes.
-- Ensure the CLI wrapper watches for stdin closure/errors so disabling the MCP server tears down the Bun subprocess immediately.
-- Detect closed stdio streams (e.g. when an MCP host disables the server) and trigger shutdown immediately.
-- Introduce a parent PID heartbeat watchdog so child Bun workers exit if the Cursor parent terminates without sending signals.
-- Skip stdin monitoring when attached to an interactive TTY so manual `bun run` sessions stay alive while Cursor pipes still trigger shutdown.
-
-### Changed
-- Default banner and tool metadata now fall back to `v1.1.6`.
-
-## [1.1.5] - 2025-11-11
-
-### Fixed
-- Close the MCP stdio transport and stop scheduled jobs when the client disconnects, ensuring the server exits cleanly instead of lingering in the background.
-- Harden the npm bin shim to propagate termination signals and kill the Bun subprocess on Windows, preventing orphaned `bun.exe` processes.
-- Detect closed stdio streams (e.g. when an MCP host disables the server) and trigger shutdown immediately.
-
-### Changed
-- Default banner and tool metadata now fall back to `v1.1.5`.
+- Bump npm metadata and runtime banner defaults to `v1.2.0` so this branch can become the new `main` release without further functional changes.
 
 ## [1.1.3] - 2025-11-11
 
