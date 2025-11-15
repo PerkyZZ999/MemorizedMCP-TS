@@ -1,6 +1,11 @@
 # Changelog
 
-# [1.1.3] - 2025-11-11
+## [1.2.0] - 2025-11-15
+
+### Changed
+- Bump npm metadata and runtime banner defaults to `v1.2.0` so this branch can become the new `main` release without further functional changes.
+
+## [1.1.3] - 2025-11-11
 
 ### Added
 - Introduced `--path` (`-p`) CLI flag to override `DATA_ROOT`, making it easy to colocate SQLite/vectors within project workspaces.
