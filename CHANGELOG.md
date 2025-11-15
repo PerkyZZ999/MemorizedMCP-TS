@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.9] - 2025-11-14
+
+### Fixed
+- Disable stdin-based shutdown monitoring by default and make it opt-in via `MCP_ENABLE_STDIN_SHUTDOWN`, preventing the CLI/npx workflow from exiting immediately in Cursor 2.0.
+- Parent PID watchdog now auto-enables whenever `MEMORIZEDMCP_PARENT_PID` is provided, keeping the anti-zombie protection without impacting manual runs.
+- Document the new shutdown toggles in `README.md` and `docs/MCP-Server-Guide.md`.
+
+### Changed
+- Bump npm package metadata to `v1.1.9`.
+
 ## [1.1.8] - 2025-11-11
 
 ### Changed

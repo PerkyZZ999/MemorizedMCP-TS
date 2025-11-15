@@ -172,6 +172,8 @@ The server reads configuration from `.env` (via `dotenv`) plus runtime overrides
 | `SQLITE_URL` | Path to SQLite database | `./data/sqlite/memorized.db` |
 | `TRANSFORMER_MODEL` | Transformers.js model ID | `hash` (replace with a real model) |
 | `MCP_MULTI_TOOL` | Enable multi-tool registry | `false` |
+| `MCP_ENABLE_PARENT_WATCHDOG` | Kill the server if the launcher process disappears | `true` when `MEMORIZEDMCP_PARENT_PID` is provided, otherwise `false` |
+| `MCP_ENABLE_STDIN_SHUTDOWN` | Watch stdin closure as an additional shutdown signal | `false` (enable manually when your MCP host keeps stdin open) |
 | `SINGLE_TOOL_TIMEOUT_MS` | Sandbox timeout for `run_code` | `120000` |
 | `CRON_*` | Cron expressions for scheduled jobs | see `.env.example` |
 

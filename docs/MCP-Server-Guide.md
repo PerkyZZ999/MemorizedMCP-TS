@@ -82,6 +82,16 @@ npx -y memorizedmcp-ts --config ~/.memorized/.env.production --env LOG_LEVEL=deb
 npx -y memorizedmcp-ts --multi-tool --path "$PWD/.memorized"
 ```
 
+### Shutdown Controls
+
+The server now exposes opt-in environment toggles to control how aggressively it tears down background processes:
+
+- `MCP_ENABLE_PARENT_WATCHDOG` – when `true`, the Bun worker periodically checks the launcher’s PID and exits if the parent disappears. This defaults to `true` automatically whenever `MEMORIZEDMCP_PARENT_PID` is set (as with the packaged CLI) and `false` otherwise.
+- `MCP_ENABLE_STDIN_SHUTDOWN` – when `true`, the server listens for `stdin` `end/close` events and shuts down as soon as the MCP host closes the pipe. This is **disabled by default** because some terminals report non-TTY stdin and would otherwise terminate immediately. Enable it only when your MCP host keeps stdin open for the lifetime of the session (e.g., Cursor 2.0).
+- `MCP_FORCE_STDIN_WATCH` – advanced knob that forces stdin monitoring even if the parent process reports a TTY. Useful for debugging or bespoke hosts.
+
+The published CLI continues to pass the parent PID automatically so background Bun processes still disappear when Cursor toggles the server off, without requiring stdin-based shutdowns.
+
 ### When to Use Each Mode
 
 **Single-Tool Mode** is ideal when:

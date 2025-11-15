@@ -11,11 +11,17 @@ const bunExecutable = process.env.BUN_BINARY ?? "bun";
 const scriptPath = path.resolve(__dirname, "../dist/index.js");
 const cliArgs = process.argv.slice(2);
 
+const parentStdinIsTTY =
+  typeof process.stdin?.isTTY === "boolean"
+    ? process.stdin.isTTY
+    : true;
+
 const child = spawn(bunExecutable, [scriptPath, ...cliArgs], {
   stdio: "inherit",
   env: {
     ...process.env,
     MEMORIZEDMCP_PARENT_PID: String(process.pid),
+    MEMORIZEDMCP_PARENT_STDIN_IS_TTY: parentStdinIsTTY ? "true" : "false",
   },
 });
 
@@ -65,8 +71,7 @@ const handleInputError = (error) => {
 
 if (process.stdin) {
   const shouldWatch =
-    typeof process.stdin.on === "function" &&
-    (process.stdin.isTTY === undefined || process.stdin.isTTY === false);
+    typeof process.stdin.on === "function" && process.stdin.isTTY === false;
 
   if (shouldWatch) {
     if (typeof process.stdin.resume === "function") {

@@ -25,7 +25,7 @@ export async function bootstrap(
   const config = loadConfig({}, { envFile, envVars });
   const logger = createLogger(config);
   const mode = config.mcp.multiTool ? "multi-tool" : "single-tool";
-  const version = process.env.npm_package_version ?? "1.1.8";
+  const version = process.env.npm_package_version ?? "1.1.9";
 
   const banner = renderBanner({
     appName: "MemorizedMCP-TS",
@@ -61,6 +61,8 @@ export async function bootstrap(
   let transportHandle: McpServerHandle["transport"] | undefined;
   let parentCheckInterval: NodeJS.Timeout | undefined;
   let monitoringStdin = false;
+  const enableStdinShutdown =
+    parseEnvBoolean(process.env.MCP_ENABLE_STDIN_SHUTDOWN) === true;
 
   function handleStdinEnd(): void {
     logger.info("STDIN ended; initiating shutdown.");
@@ -156,9 +158,15 @@ export async function bootstrap(
   }
 
   const stdin = process.stdin;
+  const parentStdinIsTTY = parseEnvBoolean(
+    process.env.MEMORIZEDMCP_PARENT_STDIN_IS_TTY,
+  );
+  const forceMonitorStdin =
+    parseEnvBoolean(process.env.MCP_FORCE_STDIN_WATCH) === true;
   const shouldMonitorStdin =
+    enableStdinShutdown &&
     typeof stdin.on === "function" &&
-    (stdin.isTTY === undefined || stdin.isTTY === false);
+    (forceMonitorStdin || parentStdinIsTTY === false);
 
   if (shouldMonitorStdin) {
     stdin.on("end", handleStdinEnd);
@@ -170,17 +178,33 @@ export async function bootstrap(
     monitoringStdin = true;
   } else {
     logger.debug(
-      { isTTY: stdin.isTTY },
-      "STDIN is TTY; skipping closure monitoring.",
+      {
+        isTTY: stdin.isTTY,
+        parentIsTTY: parentStdinIsTTY,
+        forceMonitorStdin,
+        enableStdinShutdown,
+      },
+      "STDIN closure monitoring disabled.",
     );
   }
 
   const parentPidValue = process.env.MEMORIZEDMCP_PARENT_PID;
+  const parsedParentWatchdog = parseEnvBoolean(
+    process.env.MCP_ENABLE_PARENT_WATCHDOG,
+  );
+  const enableParentWatchdog =
+    parsedParentWatchdog !== undefined
+      ? parsedParentWatchdog
+      : parentPidValue !== undefined;
   const parentPid = parentPidValue
     ? Number.parseInt(parentPidValue, 10)
     : undefined;
 
-  if (parentPid !== undefined && !Number.isNaN(parentPid)) {
+  if (
+    enableParentWatchdog &&
+    parentPid !== undefined &&
+    !Number.isNaN(parentPid)
+  ) {
     const checkParentAlive = () => {
       try {
         process.kill(parentPid, 0);
@@ -196,6 +220,11 @@ export async function bootstrap(
     if (typeof parentCheckInterval.unref === "function") {
       parentCheckInterval.unref();
     }
+  } else if (enableParentWatchdog) {
+    logger.warn(
+      { parentPidValue },
+      "MCP_ENABLE_PARENT_WATCHDOG=true but MEMORIZEDMCP_PARENT_PID is missing or invalid; watchdog disabled.",
+    );
   }
 
   const { transport } = await startMcpServer(container);
@@ -363,4 +392,25 @@ function printHelp(): void {
   ];
 
   console.log(lines.join("\n"));
+}
+
+function parseEnvBoolean(value?: string | null): boolean | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (!normalized.length) {
+    return undefined;
+  }
+
+  if (["1", "true", "yes", "y", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["0", "false", "no", "n", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
 }
